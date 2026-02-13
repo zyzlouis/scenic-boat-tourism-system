@@ -30,7 +30,7 @@
     </view>
 
     <!-- 储值卡区域 -->
-    <view class="balance-card">
+    <view wx:if="{{rechargeEnabled}}" class="balance-card">
       <view class="balance-header">
         <text class="balance-title">储值卡余额</text>
         <van-icon wx:if="{{loading}}" name="replay" class="refresh-icon loading" />
@@ -63,6 +63,7 @@
         bind:click="goToOrderList"
       />
       <van-cell
+        wx:if="{{rechargeEnabled}}"
         title="充值记录"
         is-link
         icon="balance-list-o"

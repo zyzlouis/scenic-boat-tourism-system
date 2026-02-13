@@ -367,6 +367,47 @@ finalAmount = basePrice + overtimeFee;
 
 ---
 
+## 💰 储值系统开关配置
+
+为了顺利通过微信小程序审核，储值功能默认关闭。可通过以下方式开启：
+
+### 审核模式（默认）
+- 储值功能完全隐藏，包括：
+  - 个人中心不显示余额区域
+  - 不显示充值入口
+  - 不显示充值记录
+  - 支付页面隐藏余额支付选项
+
+### 开启储值功能
+在数据库中修改配置：
+
+```javascript
+// 在微信小程序后台的云开发控制台
+// 进入数据库，找到 app_settings 集合
+
+db.collection('app_settings')
+  .doc('global_settings')
+  .update({
+    data: {
+      rechargeEnabled: true  // 修改为 true 启用储值
+    }
+  })
+```
+
+或者直接使用初始化云函数：
+
+```javascript
+// 调用云函数重新初始化配置
+wx.cloud.callFunction({
+  name: 'initDatabase'
+})
+// 然后手动修改 rechargeEnabled 为 true
+```
+
+**注意**：首次部署或审核时，请确保 `rechargeEnabled` 为 `false`。通过审核后可根据业务需要开启。
+
+---
+
 ## 📞 联系方式
 
 如有问题或建议，请联系开发团队。

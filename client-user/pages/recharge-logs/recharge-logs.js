@@ -1,4 +1,6 @@
 // pages/recharge-logs/recharge-logs.js
+const app = getApp()
+
 Page({
   data: {
     logs: [],
@@ -9,8 +11,28 @@ Page({
   },
 
   onLoad() {
+    // 检查储值功能是否启用
+    const appConfig = app.getAppConfig()
+    if (!appConfig.rechargeEnabled) {
+      wx.showModal({
+        title: '提示',
+        content: '储值功能暂未开放',
+        showCancel: false,
+        success: () => {
+          wx.navigateBack({
+            fail: () => {
+              wx.switchTab({
+                url: '/pages/index/index'
+              })
+            }
+          })
+        }
+      })
+      return
+    }
+
     this.loadLogs()
-  },
+  }
 
   // 加载余额变动记录
   async loadLogs(isRefresh = false) {

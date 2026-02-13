@@ -42,7 +42,7 @@
       </van-cell-group>
 
       <!-- 余额支付 -->
-      <van-cell-group custom-class="mt-20">
+      <van-cell-group wx:if="{{rechargeEnabled}}" custom-class="mt-20">
         <van-cell
           clickable
           data-method="balance"

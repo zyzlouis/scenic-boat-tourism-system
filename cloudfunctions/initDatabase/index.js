@@ -290,6 +290,7 @@ const announcementsData = [
 const appSettingsData = [
   {
     _id: "global_settings",
+    rechargeEnabled: false,  // 储值功能开关，默认关闭（用于审核）
     scenicName: "云湖景区",
     contactPhone: "0571-88888888",
     openTime: "08:00",

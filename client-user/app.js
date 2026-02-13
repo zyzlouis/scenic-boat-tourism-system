@@ -2,7 +2,8 @@
 App({
   globalData: {
     userInfo: null,
-    staffInfo: null  // 员工信息
+    staffInfo: null,  // 员工信息
+    appConfig: null   // 全局配置（包含rechargeEnabled）
   },
 
   onLaunch() {
@@ -19,7 +20,37 @@ App({
       console.log('✅ 云开发初始化成功')
     }
 
+    // 获取全局配置（包含储值功能开关）
+    this.loadAppConfig();
+
     this.checkLogin();
+  },
+
+  /**
+   * 获取应用全局配置
+   */
+  async loadAppConfig() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getAppConfig',
+        data: {}
+      });
+
+      if (res.result.code === 200) {
+        const appConfig = res.result.data;
+        this.globalData.appConfig = appConfig;
+        wx.setStorageSync('appConfig', appConfig);
+        console.log('✅ 全局配置加载成功', appConfig);
+      } else {
+        console.error('获取配置失败:', res.result.message);
+        // 使用默认配置
+        this.globalData.appConfig = { rechargeEnabled: false };
+      }
+    } catch (error) {
+      console.error('加载配置失败:', error);
+      // 使用默认配置
+      this.globalData.appConfig = { rechargeEnabled: false };
+    }
   },
 
   /**
@@ -144,5 +175,20 @@ App({
    */
   isAdmin() {
     return this.globalData.staffInfo?.role === 'admin';
+  },
+
+  /**
+   * 获取应用配置
+   */
+  getAppConfig() {
+    return this.globalData.appConfig || wx.getStorageSync('appConfig') || { rechargeEnabled: false };
+  },
+
+  /**
+   * 判断是否启用储值功能
+   */
+  isRechargeEnabled() {
+    const config = this.getAppConfig();
+    return config.rechargeEnabled === true;
   }
 });

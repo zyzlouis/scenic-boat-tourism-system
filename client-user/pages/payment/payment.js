@@ -1,19 +1,27 @@
 // pages/payment/payment.js
+const app = getApp()
+
 Page({
   data: {
     order: null,
     balance: 0,
     paymentMethod: 'wechat', // wechat 或 balance
-    loading: false
+    loading: false,
+    rechargeEnabled: false  // 储值功能开关
   },
 
   onLoad(options) {
     const { orderId } = options
+
+    // 检查储值功能是否启用
+    const appConfig = app.getAppConfig()
+    this.setData({ rechargeEnabled: appConfig.rechargeEnabled === true })
+
     if (orderId) {
       this.loadOrderDetail(orderId)
       this.loadBalance()
     }
-  },
+  }
 
   // 加载订单详情
   async loadOrderDetail(orderId) {

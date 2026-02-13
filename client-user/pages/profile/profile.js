@@ -1,4 +1,6 @@
 // pages/profile/profile.js
+const app = getApp()
+
 Page({
   data: {
     avatarUrl: '',
@@ -7,13 +9,18 @@ Page({
     totalRecharge: 0,
     totalGift: 0,
     isVip: false,
-    loading: false
+    loading: false,
+    rechargeEnabled: false  // 储值功能开关
   },
 
   onLoad() {
+    // 检查储值功能是否启用
+    const appConfig = app.getAppConfig()
+    this.setData({ rechargeEnabled: appConfig.rechargeEnabled === true })
+
     this.loadUserInfo()
     this.loadBalance()
-  },
+  }
 
   onShow() {
     // 每次显示页面时刷新余额
