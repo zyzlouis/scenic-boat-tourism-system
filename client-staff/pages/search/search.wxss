@@ -1,0 +1,153 @@
+/* pages/search/search.wxss */
+.search-bar {
+  background-color: #ffffff;
+  padding: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.tips-section {
+  padding: 0 20rpx;
+}
+
+.tips-card {
+  text-align: center;
+  padding: 48rpx 32rpx;
+  margin-bottom: 32rpx;
+}
+
+.tips-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.tips-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 24rpx;
+}
+
+.tips-content {
+  text-align: left;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 24rpx;
+}
+
+.tip-item {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 2;
+}
+
+.example-section {
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+}
+
+.example-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 16rpx;
+}
+
+.example-list {
+  font-size: 26rpx;
+  color: #666666;
+}
+
+.example-item {
+  padding: 8rpx 0;
+}
+
+.loading-container {
+  padding: 120rpx 0;
+  text-align: center;
+}
+
+.result-section {
+  padding: 0 20rpx;
+}
+
+.result-card {
+  margin-bottom: 32rpx;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.card-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.info-list {
+  margin-bottom: 16rpx;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16rpx 0;
+  font-size: 28rpx;
+}
+
+.info-item .label {
+  color: #999999;
+}
+
+.info-item .value {
+  color: #333333;
+  font-weight: bold;
+}
+
+.info-item .value.boat-number {
+  color: #07c160;
+  font-size: 36rpx;
+}
+
+.info-item .value.small {
+  font-size: 24rpx;
+}
+
+.timing-info {
+  display: flex;
+  gap: 20rpx;
+}
+
+.timing-item {
+  flex: 1;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  text-align: center;
+}
+
+.timing-item.highlight {
+  background: linear-gradient(135deg, #07c160 0%, #00a854 100%);
+  color: #ffffff;
+}
+
+.timing-label {
+  font-size: 24rpx;
+  opacity: 0.8;
+  margin-bottom: 12rpx;
+}
+
+.timing-value {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.action-section {
+  padding-bottom: 40rpx;
+}

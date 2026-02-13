@@ -1,0 +1,75 @@
+<!--pages/order-list/order-list.wxml-->
+<wxs module="filters" src="../../utils/filters.wxs"></wxs>
+<view class="container">
+  <!-- 订单列表 -->
+  <view class="order-list">
+    <view
+      wx:for="{{orders}}"
+      wx:key="orderId"
+      class="order-item card"
+      data-id="{{item.orderId}}"
+      bindtap="gotoOrderDetail"
+    >
+      <!-- 订单头部 -->
+      <view class="order-header">
+        <view class="order-no">订单号：{{item.orderNo}}</view>
+        <view
+          class="order-status"
+          style="color: {{filters.getOrderStatusColor(item.status)}}"
+        >
+          {{filters.getOrderStatusText(item.status)}}
+        </view>
+      </view>
+
+      <!-- 订单内容 -->
+      <view class="order-content">
+        <view class="boat-info">
+          <view class="boat-type">{{item.boatTypeName}}</view>
+          <view wx:if="{{item.boatNumber}}" class="boat-number">船号：{{item.boatNumber}}</view>
+        </view>
+
+        <view class="order-amount">
+          <text class="label">订单金额</text>
+          <text class="value">¥{{filters.formatMoney(item.totalAmount)}}</text>
+        </view>
+      </view>
+
+      <!-- 订单时间 -->
+      <view class="order-time">
+        {{filters.formatTime(item.createdAt)}}
+      </view>
+
+      <!-- 已完成订单显示最终金额 -->
+      <view wx:if="{{item.status === 'completed'}}" class="order-footer">
+        <view class="final-amount">
+          <text class="label">最终费用：</text>
+          <text class="value">¥{{filters.formatMoney(item.finalAmount)}}</text>
+        </view>
+        <view class="refund-amount">
+          <text class="label">已退押金：</text>
+          <text class="value">¥{{filters.formatMoney(item.refundAmount)}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading && page === 1}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#1989fa">加载中...</van-loading>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && orders.length === 0}}" class="empty-container">
+    <van-empty description="暂无订单" />
+  </view>
+
+  <!-- 加载更多 -->
+  <view wx:if="{{loading && page > 1}}" class="load-more">
+    <van-loading size="32rpx" type="spinner" color="#1989fa">加载更多...</van-loading>
+  </view>
+
+  <!-- 没有更多了 -->
+  <view wx:if="{{!loading && !hasMore && orders.length > 0}}" class="no-more">
+    没有更多订单了
+  </view>
+</view>

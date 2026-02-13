@@ -1,0 +1,57 @@
+[
+  {
+    "_id": "boat_a001",
+    "boatNumber": "A001",
+    "boatTypeCode": "DOUBLE",
+    "status": "idle",
+    "lastUsedAt": null,
+    "sort": 1,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "boat_a002",
+    "boatNumber": "A002",
+    "boatTypeCode": "DOUBLE",
+    "status": "idle",
+    "lastUsedAt": null,
+    "sort": 2,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "boat_b001",
+    "boatNumber": "B001",
+    "boatTypeCode": "FOUR",
+    "status": "idle",
+    "lastUsedAt": null,
+    "sort": 11,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "boat_b002",
+    "boatNumber": "B002",
+    "boatTypeCode": "FOUR",
+    "status": "idle",
+    "lastUsedAt": null,
+    "sort": 12,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "boat_c001",
+    "boatNumber": "C001",
+    "boatTypeCode": "SIX",
+    "status": "idle",
+    "lastUsedAt": null,
+    "sort": 21,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  }
+]

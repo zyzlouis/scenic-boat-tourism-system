@@ -1,0 +1,56 @@
+<!--pages/login/login.wxml-->
+<view class="login-container">
+  <!-- Logo区域 -->
+  <view class="logo-section">
+    <image class="logo" src="/images/logo.png" mode="aspectFit" />
+    <view class="app-name">员工工作台</view>
+    <view class="app-desc">景区游船计时收费系统</view>
+  </view>
+
+  <!-- 登录表单 -->
+  <view class="form-section">
+    <view class="form-card">
+      <van-cell-group>
+        <van-field
+          value="{{username}}"
+          label="用户名"
+          placeholder="请输入用户名"
+          border="{{false}}"
+          bind:change="onUsernameChange"
+        />
+        <van-field
+          value="{{password}}"
+          type="password"
+          label="密码"
+          placeholder="请输入密码"
+          border="{{false}}"
+          bind:change="onPasswordChange"
+        />
+      </van-cell-group>
+
+      <view class="login-button">
+        <van-button
+          type="primary"
+          size="large"
+          round
+          loading="{{loading}}"
+          loading-text="登录中..."
+          custom-class="btn-primary"
+          bindtap="handleLogin"
+        >
+          登录
+        </van-button>
+      </view>
+    </view>
+
+    <!-- 提示信息 -->
+    <view class="tips">
+      <text>💡 默认账号：admin / admin123</text>
+    </view>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version">
+    <text>v1.0.0</text>
+  </view>
+</view>

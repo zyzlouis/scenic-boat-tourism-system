@@ -1,0 +1,71 @@
+<!--pages/scan/scan.wxml-->
+<view class="container">
+  <!-- 员工信息卡片 -->
+  <view class="staff-card card">
+    <view class="staff-header">
+      <view class="staff-info">
+        <view class="staff-name">{{staffInfo.realName}}</view>
+        <view class="staff-role">
+          <text class="tag tag-success" wx:if="{{staffInfo.role === 'admin'}}">管理员</text>
+          <text class="tag" wx:else style="background-color: #1989fa;">员工</text>
+        </view>
+      </view>
+      <view class="logout-btn" bindtap="handleLogout">
+        <text>退出</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 扫码区域 -->
+  <view class="scan-section">
+    <view class="scan-card">
+      <view class="scan-icon" bindtap="handleScan">
+        <image src="/images/scan-icon.png" mode="aspectFit" />
+      </view>
+      <view class="scan-text">点击扫描核销码</view>
+      <view class="scan-tip">支持发船和收船操作</view>
+    </view>
+  </view>
+
+  <!-- 操作说明 -->
+  <view class="guide-section">
+    <view class="guide-title">📖 操作指南</view>
+    <view class="guide-card card">
+      <view class="guide-item">
+        <view class="guide-icon">1️⃣</view>
+        <view class="guide-content">
+          <view class="guide-step">发船流程</view>
+          <view class="guide-desc">扫描游客核销码 → 输入船号 → 开始计时</view>
+        </view>
+      </view>
+      <view class="divider"></view>
+      <view class="guide-item">
+        <view class="guide-icon">2️⃣</view>
+        <view class="guide-content">
+          <view class="guide-step">收船流程</view>
+          <view class="guide-desc">扫描游客核销码 → 查看账单 → 确认收船</view>
+        </view>
+      </view>
+      <view class="divider"></view>
+      <view class="guide-item">
+        <view class="guide-icon">💡</view>
+        <view class="guide-content">
+          <view class="guide-step">特殊情况</view>
+          <view class="guide-desc">游客手机没电？使用"船号查询"功能</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 快捷功能 -->
+  <view class="quick-actions">
+    <view class="action-button" bindtap="goToSearch">
+      <view class="action-icon">🔍</view>
+      <view class="action-text">船号查询</view>
+    </view>
+    <view class="action-button" bindtap="goToOrders">
+      <view class="action-icon">📋</view>
+      <view class="action-text">待处理订单</view>
+    </view>
+  </view>
+</view>

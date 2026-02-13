@@ -1,0 +1,153 @@
+/* pages/orders/orders.wxss */
+.stats-card {
+  display: flex;
+  margin-bottom: 32rpx;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+}
+
+.stat-value {
+  font-size: 56rpx;
+  font-weight: bold;
+  color: #07c160;
+  margin-bottom: 8rpx;
+}
+
+.stat-label {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.stat-divider {
+  width: 1rpx;
+  background-color: #eeeeee;
+  margin: 16rpx 0;
+}
+
+.loading-container {
+  padding: 120rpx 0;
+  text-align: center;
+}
+
+.order-list {
+  padding-bottom: 40rpx;
+}
+
+.order-item {
+  margin-bottom: 20rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.order-item:active {
+  opacity: 0.8;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #eeeeee;
+}
+
+.boat-number {
+  display: flex;
+  align-items: center;
+}
+
+.boat-number .icon {
+  font-size: 32rpx;
+  margin-right: 8rpx;
+}
+
+.boat-number .number {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #07c160;
+}
+
+.boat-type {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.order-body {
+  margin-bottom: 16rpx;
+}
+
+.info-row {
+  display: flex;
+  align-items: center;
+  font-size: 28rpx;
+  margin-bottom: 12rpx;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+.info-row .label {
+  color: #999999;
+  width: 100rpx;
+}
+
+.info-row .value {
+  color: #333333;
+}
+
+.info-row.highlight {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.info-row.highlight .value {
+  color: #07c160;
+}
+
+.overtime-alert {
+  display: flex;
+  align-items: center;
+  background-color: #fff3e0;
+  border-left: 4rpx solid #ff9800;
+  padding: 12rpx 16rpx;
+  margin-bottom: 16rpx;
+  border-radius: 8rpx;
+}
+
+.overtime-alert .icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+}
+
+.overtime-alert .text {
+  font-size: 24rpx;
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.order-action {
+  text-align: right;
+}
+
+.action-text {
+  font-size: 28rpx;
+  color: #07c160;
+  font-weight: bold;
+}
+
+.empty-container {
+  padding: 120rpx 0;
+  text-align: center;
+}
+
+.empty-tip {
+  font-size: 28rpx;
+  color: #999999;
+  margin-top: 20rpx;
+}

@@ -1,0 +1,16 @@
+{
+  "name": "initdatabase",
+  "version": "1.0.0",
+  "description": "一键初始化数据库（按照CMS规范）",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "bcryptjs": "^2.4.3"
+  }
+}

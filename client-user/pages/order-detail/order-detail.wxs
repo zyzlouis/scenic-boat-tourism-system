@@ -1,0 +1,53 @@
+// order-detail.wxs - 格式化工具
+
+/**
+ * 格式化金额（已弃用，请使用 utils/filters.wxs）
+ */
+function formatMoney(amount) {
+  if (amount === null || amount === undefined || amount === '') {
+    return '0.00';
+  }
+  var num = parseFloat(amount);
+  if (isNaN(num)) {
+    return '0.00';
+  }
+  return num.toFixed(2);
+}
+
+/**
+ * 格式化时间
+ */
+function formatTime(dateStr) {
+  if (!dateStr) return '';
+
+  var date = getDate(dateStr);
+  var year = date.getFullYear();
+  var month = ('0' + (date.getMonth() + 1)).slice(-2);
+  var day = ('0' + date.getDate()).slice(-2);
+  var hour = ('0' + date.getHours()).slice(-2);
+  var minute = ('0' + date.getMinutes()).slice(-2);
+  var second = ('0' + date.getSeconds()).slice(-2);
+
+  return year + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+}
+
+/**
+ * 格式化时长
+ */
+function formatDuration(minutes) {
+  if (!minutes || minutes === 0) return '0分钟';
+
+  var hours = Math.floor(minutes / 60);
+  var mins = minutes % 60;
+
+  if (hours > 0) {
+    return hours + '小时' + mins + '分钟';
+  }
+  return mins + '分钟';
+}
+
+module.exports = {
+  formatMoney: formatMoney,
+  formatTime: formatTime,
+  formatDuration: formatDuration
+};

@@ -1,0 +1,35 @@
+[
+  {
+    "_id": "banner_001",
+    "title": "春节特惠活动",
+    "imageUrl": "cloud://boat-rental-xxx.png",
+    "linkType": "none",
+    "linkUrl": "",
+    "sort": 1,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "banner_002",
+    "title": "会员储值享优惠",
+    "imageUrl": "cloud://boat-rental-xxx.png",
+    "linkType": "page",
+    "linkUrl": "/pages/recharge/recharge",
+    "sort": 2,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "banner_003",
+    "title": "景区介绍",
+    "imageUrl": "cloud://boat-rental-xxx.png",
+    "linkType": "web",
+    "linkUrl": "https://example.com/about",
+    "sort": 3,
+    "enabled": false,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  }
+]

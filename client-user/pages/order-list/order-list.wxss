@@ -1,0 +1,108 @@
+/* pages/order-list/order-list.wxss */
+.order-list {
+  padding-bottom: 40rpx;
+}
+
+.order-item {
+  margin-bottom: 20rpx;
+  padding: 24rpx;
+}
+
+.order-item:active {
+  opacity: 0.8;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 1rpx solid #eeeeee;
+}
+
+.order-no {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.order-status {
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.order-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.boat-info {
+  flex: 1;
+}
+
+.boat-type {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 8rpx;
+}
+
+.boat-number {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.order-amount {
+  text-align: right;
+}
+
+.order-amount .label {
+  font-size: 24rpx;
+  color: #999999;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.order-amount .value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #ff4444;
+}
+
+.order-time {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.order-footer {
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx dashed #eeeeee;
+  display: flex;
+  justify-content: space-between;
+  font-size: 24rpx;
+}
+
+.order-footer .label {
+  color: #666666;
+}
+
+.order-footer .value {
+  color: #ff4444;
+  font-weight: bold;
+}
+
+.loading-container {
+  padding: 120rpx 0;
+  text-align: center;
+}
+
+.load-more,
+.no-more {
+  text-align: center;
+  padding: 40rpx 0;
+  font-size: 24rpx;
+  color: #999999;
+}

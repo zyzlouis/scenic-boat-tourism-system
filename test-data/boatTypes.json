@@ -1,0 +1,38 @@
+[
+  {
+    "_id": "boat_type_double",
+    "code": "DOUBLE",
+    "name": "双人船",
+    "description": "适合情侣、朋友2人乘坐",
+    "maxCapacity": 2,
+    "imageUrl": "cloud://your-env-id.xxx/boat-images/double.jpg",
+    "sort": 1,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "boat_type_four",
+    "code": "FOUR",
+    "name": "四人船",
+    "description": "适合家庭、小团队4人乘坐",
+    "maxCapacity": 4,
+    "imageUrl": "cloud://your-env-id.xxx/boat-images/four.jpg",
+    "sort": 2,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "boat_type_six",
+    "code": "SIX",
+    "name": "六人船",
+    "description": "适合大家庭、团队6人乘坐",
+    "maxCapacity": 6,
+    "imageUrl": "cloud://your-env-id.xxx/boat-images/six.jpg",
+    "sort": 3,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  }
+]

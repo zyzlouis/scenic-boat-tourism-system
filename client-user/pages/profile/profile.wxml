@@ -1,0 +1,102 @@
+<!--pages/profile/profile.wxml-->
+<wxs src="../../utils/format.wxs" module="format" />
+
+<view class="profile-container">
+  <!-- 用户信息卡片 -->
+  <view class="user-card">
+    <view class="user-header">
+      <image
+        class="avatar"
+        src="{{avatarUrl || '/images/default-avatar.png'}}"
+        mode="aspectFill"
+      />
+      <view class="user-info">
+        <view class="nickname">{{nickName || '未登录'}}</view>
+        <view wx:if="{{!avatarUrl}}" class="login-tip">
+          <button
+            class="avatar-btn"
+            open-type="chooseAvatar"
+            bindchooseavatar="onChooseAvatar"
+            size="small"
+          >
+            授权登录
+          </button>
+        </view>
+        <view wx:else class="vip-status">
+          <text wx:if="{{isVip}}" class="vip-badge">VIP会员</text>
+          <text wx:else class="normal-badge">普通用户</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 储值卡区域 -->
+    <view class="balance-card">
+      <view class="balance-header">
+        <text class="balance-title">储值卡余额</text>
+        <van-icon wx:if="{{loading}}" name="replay" class="refresh-icon loading" />
+        <van-icon wx:else name="replay" class="refresh-icon" bindtap="loadBalance" />
+      </view>
+      <view class="balance-amount">¥{{format.formatMoney(balance)}}</view>
+      <view class="balance-stats">
+        <view class="stat-item">
+          <text class="stat-label">累计充值</text>
+          <text class="stat-value">¥{{format.formatMoney(totalRecharge)}}</text>
+        </view>
+        <view class="stat-item">
+          <text class="stat-label">累计获赠</text>
+          <text class="stat-value">¥{{format.formatMoney(totalGift)}}</text>
+        </view>
+      </view>
+      <van-button type="primary" size="large" round bind:click="goToRecharge" custom-class="recharge-btn">
+        立即充值
+      </van-button>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-section">
+    <van-cell-group>
+      <van-cell
+        title="我的订单"
+        is-link
+        icon="orders-o"
+        bind:click="goToOrderList"
+      />
+      <van-cell
+        title="充值记录"
+        is-link
+        icon="balance-list-o"
+        bind:click="goToRechargeLogs"
+      />
+      <van-cell
+        title="员工入口"
+        is-link
+        icon="manager-o"
+        bind:click="goToStaffLogin"
+      />
+      <van-cell
+        title="联系客服"
+        is-link
+        icon="phone-o"
+        bind:click="contactService"
+      />
+      <van-cell
+        title="关于景区"
+        is-link
+        icon="info-o"
+        bind:click="showAbout"
+      />
+    </van-cell-group>
+  </view>
+
+  <view class="menu-section">
+    <van-cell-group>
+      <van-cell
+        title="退款说明"
+        is-link
+        icon="refund-o"
+        bind:click="showRefundRules"
+      />
+    </van-cell-group>
+  </view>
+</view>

@@ -1,0 +1,41 @@
+[
+  {
+    "_id": "staff_admin",
+    "username": "admin",
+    "password": "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy",
+    "realName": "系统管理员",
+    "phone": "13800000000",
+    "role": "admin",
+    "lastLoginAt": null,
+    "sort": 1,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "staff_001",
+    "username": "staff01",
+    "password": "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy",
+    "realName": "张三",
+    "phone": "13800138001",
+    "role": "staff",
+    "lastLoginAt": null,
+    "sort": 10,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "staff_002",
+    "username": "staff02",
+    "password": "$2b$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy",
+    "realName": "李四",
+    "phone": "13800138002",
+    "role": "staff",
+    "lastLoginAt": null,
+    "sort": 11,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  }
+]

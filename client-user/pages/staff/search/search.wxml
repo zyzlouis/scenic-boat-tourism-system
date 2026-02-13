@@ -1,0 +1,99 @@
+<!--pages/search/search.wxml-->
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <van-search
+      value="{{searchValue}}"
+      placeholder="请输入船号，如：E-001"
+      show-action
+      bind:change="onSearchChange"
+      bind:search="onSearch"
+      bind:clear="onClear"
+    >
+      <view slot="action" bindtap="onSearch">搜索</view>
+    </van-search>
+  </view>
+
+  <!-- 使用说明 -->
+  <view wx:if="{{!searchResult && !searching}}" class="tips-section">
+    <view class="tips-card card">
+      <view class="tips-icon">💡</view>
+      <view class="tips-title">使用说明</view>
+      <view class="tips-content">
+        <view class="tip-item">• 当游客手机没电无法出示核销码时使用</view>
+        <view class="tip-item">• 询问游客所乘坐的船号</view>
+        <view class="tip-item">• 输入船号查询订单信息</view>
+        <view class="tip-item">• 确认后即可完成收船操作</view>
+      </view>
+    </view>
+
+    <view class="example-section">
+      <view class="example-title">船号格式示例</view>
+      <view class="example-list">
+        <view class="example-item">有动力船：E-001 ~ E-010</view>
+        <view class="example-item">无动力船：P-001 ~ P-015</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 搜索中 -->
+  <view wx:if="{{searching}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#07c160">查询中...</van-loading>
+  </view>
+
+  <!-- 搜索结果 -->
+  <view wx:if="{{searchResult}}" class="result-section">
+    <!-- 订单信息卡片 -->
+    <view class="result-card card">
+      <view class="card-header">
+        <view class="card-title">订单信息</view>
+        <view class="status-tag tag-success">计时中</view>
+      </view>
+
+      <view class="info-list">
+        <view class="info-item">
+          <text class="label">船号：</text>
+          <text class="value boat-number">{{searchResult.boatNumber}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">船型：</text>
+          <text class="value">{{searchResult.boatTypeName}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">游客：</text>
+          <text class="value">{{searchResult.userNickname}}</text>
+        </view>
+        <view class="info-item">
+          <text class="label">订单号：</text>
+          <text class="value small">{{searchResult.orderNo}}</text>
+        </view>
+      </view>
+
+      <view class="divider"></view>
+
+      <view class="timing-info">
+        <view class="timing-item">
+          <view class="timing-label">开始时间</view>
+          <view class="timing-value">{{formatTime(searchResult.startTime)}}</view>
+        </view>
+        <view class="timing-item highlight">
+          <view class="timing-label">已用时长</view>
+          <view class="timing-value">{{formatDuration(searchResult.usedMinutes)}}</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-section">
+      <van-button
+        type="primary"
+        size="large"
+        round
+        custom-class="btn-primary"
+        bindtap="handleEndTrip"
+      >
+        确认收船
+      </van-button>
+    </view>
+  </view>
+</view>

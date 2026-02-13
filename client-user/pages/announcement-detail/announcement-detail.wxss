@@ -1,0 +1,80 @@
+/* pages/announcement-detail/announcement-detail.wxss */
+.container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.loading-container {
+  padding: 200rpx 0;
+  text-align: center;
+}
+
+.announcement-detail {
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+/* 公告头部 */
+.announcement-header {
+  padding: 40rpx 30rpx 30rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.type-warning {
+  background-color: #fff7e6;
+  color: #fa8c16;
+}
+
+.type-info {
+  background-color: #e6f7ff;
+  color: #1890ff;
+}
+
+.type-urgent {
+  background-color: #fff1f0;
+  color: #f5222d;
+}
+
+.type-icon {
+  margin-right: 8rpx;
+  font-size: 28rpx;
+}
+
+.type-text {
+  font-weight: bold;
+}
+
+.announcement-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333333;
+  line-height: 1.4;
+  margin-bottom: 20rpx;
+}
+
+.announcement-time {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+/* 公告内容 */
+.announcement-content {
+  padding: 30rpx;
+}
+
+.content-text {
+  font-size: 30rpx;
+  color: #666666;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

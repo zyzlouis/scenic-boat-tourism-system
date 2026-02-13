@@ -1,0 +1,15 @@
+{
+  "name": "paywithbalance",
+  "version": "1.0.0",
+  "description": "使用余额支付订单",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "latest"
+  }
+}

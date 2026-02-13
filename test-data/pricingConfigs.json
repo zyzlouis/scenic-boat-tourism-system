@@ -1,0 +1,53 @@
+[
+  {
+    "_id": "pricing_double_weekday",
+    "boatTypeCode": "DOUBLE",
+    "name": "双人船-平日价",
+    "basePrice": 50,
+    "depositAmount": 100,
+    "includedMinutes": 60,
+    "overtimeRate": 1.0,
+    "capAmount": 200,
+    "effectiveDate": null,
+    "expiryDate": null,
+    "isDefault": true,
+    "sort": 1,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "pricing_four_weekday",
+    "boatTypeCode": "FOUR",
+    "name": "四人船-平日价",
+    "basePrice": 80,
+    "depositAmount": 150,
+    "includedMinutes": 60,
+    "overtimeRate": 1.5,
+    "capAmount": 300,
+    "effectiveDate": null,
+    "expiryDate": null,
+    "isDefault": true,
+    "sort": 2,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "pricing_six_weekday",
+    "boatTypeCode": "SIX",
+    "name": "六人船-平日价",
+    "basePrice": 120,
+    "depositAmount": 200,
+    "includedMinutes": 60,
+    "overtimeRate": 2.0,
+    "capAmount": 400,
+    "effectiveDate": null,
+    "expiryDate": null,
+    "isDefault": true,
+    "sort": 3,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  }
+]

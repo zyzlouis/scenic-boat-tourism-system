@@ -1,0 +1,41 @@
+[
+  {
+    "_id": "announcement_001",
+    "title": "今日因暴雨暂停运营",
+    "content": "尊敬的游客：\n\n由于今日天气恶劣，为确保游客安全，景区游船暂停运营。已购票的游客可申请全额退款。\n\n给您带来不便，敬请谅解。",
+    "type": "warning",
+    "showOnHome": true,
+    "startDate": "2026-02-12T00:00:00.000Z",
+    "endDate": "2026-02-12T23:59:59.000Z",
+    "sort": 1,
+    "enabled": false,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "announcement_002",
+    "title": "春节营业时间调整通知",
+    "content": "尊敬的游客：\n\n春节期间（2月15日-2月21日）营业时间调整为：\n上午8:00 - 晚上20:00\n\n祝大家新春快乐！",
+    "type": "info",
+    "showOnHome": false,
+    "startDate": "2026-02-10T00:00:00.000Z",
+    "endDate": "2026-02-21T23:59:59.000Z",
+    "sort": 2,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  },
+  {
+    "_id": "announcement_003",
+    "title": "紧急通知：XX号船维护中",
+    "content": "A001号船正在维护中，预计今日18:00恢复使用。请游客选择其他船只。",
+    "type": "urgent",
+    "showOnHome": true,
+    "startDate": "2026-02-12T10:00:00.000Z",
+    "endDate": "2026-02-12T18:00:00.000Z",
+    "sort": 0,
+    "enabled": true,
+    "createdAt": "2026-02-12T00:00:00.000Z",
+    "updatedAt": "2026-02-12T00:00:00.000Z"
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "name": "boat-rental-client-staff",
+  "version": "1.0.0",
+  "description": "景区游船计时收费系统 - 员工端小程序",
+  "main": "app.js",
+  "scripts": {},
+  "keywords": [
+    "wechat",
+    "miniprogram",
+    "boat",
+    "rental",
+    "staff"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vant/weapp": "^1.10.0"
+  }
+}

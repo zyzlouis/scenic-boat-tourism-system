@@ -1,0 +1,93 @@
+<!--pages/payment/payment.wxml-->
+<wxs src="../../utils/format.wxs" module="format" />
+
+<view class="payment-container">
+  <!-- 订单信息 -->
+  <view wx:if="{{order}}" class="order-info">
+    <view class="order-header">
+      <text class="order-title">订单信息</text>
+    </view>
+    <view class="order-detail">
+      <view class="detail-row">
+        <text class="detail-label">船型：</text>
+        <text class="detail-value">{{order.boatType.name}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">订单号：</text>
+        <text class="detail-value">{{order.orderNo}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 支付方式选择 -->
+  <view class="payment-methods">
+    <view class="section-header">
+      <text>选择支付方式</text>
+    </view>
+
+    <van-radio-group value="{{paymentMethod}}" bind:change="selectPaymentMethod">
+      <!-- 微信支付 -->
+      <van-cell-group>
+        <van-cell
+          clickable
+          data-method="wechat"
+          bind:click="selectPaymentMethod"
+        >
+          <view slot="title" class="method-title">
+            <van-icon name="wechat-pay" size="48rpx" color="#07c160" />
+            <text class="method-name">微信支付</text>
+          </view>
+          <van-radio slot="right-icon" name="wechat" checked-color="#07c160" />
+        </van-cell>
+      </van-cell-group>
+
+      <!-- 余额支付 -->
+      <van-cell-group custom-class="mt-20">
+        <van-cell
+          clickable
+          data-method="balance"
+          bind:click="selectPaymentMethod"
+        >
+          <view slot="title" class="method-title">
+            <van-icon name="balance-o" size="48rpx" color="#1989fa" />
+            <view class="balance-info">
+              <text class="method-name">余额支付</text>
+              <text class="balance-amount">
+                余额：¥{{format.formatMoney(balance)}}
+                <text wx:if="{{order && balance < order.totalAmount}}" class="insufficient">(余额不足)</text>
+              </text>
+            </view>
+          </view>
+          <van-radio slot="right-icon" name="balance" checked-color="#1989fa" disabled="{{order && balance < order.totalAmount}}" />
+        </van-cell>
+      </van-cell-group>
+    </van-radio-group>
+  </view>
+
+  <!-- 支付金额 -->
+  <view wx:if="{{order}}" class="payment-amount">
+    <view class="amount-row">
+      <text class="amount-label">基础票价：</text>
+      <text class="amount-value">¥{{format.formatMoney(order.pricing.basePrice)}}</text>
+    </view>
+    <view class="amount-row">
+      <text class="amount-label">押金：</text>
+      <text class="amount-value">¥{{format.formatMoney(order.pricing.depositAmount)}}</text>
+    </view>
+    <view class="amount-divider"></view>
+    <view class="amount-row total">
+      <text class="amount-label">应付金额：</text>
+      <text class="amount-value total">¥{{format.formatMoney(order.totalAmount)}}</text>
+    </view>
+  </view>
+
+  <!-- 支付按钮 -->
+  <view class="footer">
+    <view class="cancel-link" bindtap="cancelOrder">
+      <text>取消订单</text>
+    </view>
+    <van-button type="primary" size="large" round block bind:click="doPay">
+      立即支付
+    </van-button>
+  </view>
+</view>

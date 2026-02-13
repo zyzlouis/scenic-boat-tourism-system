@@ -1,0 +1,155 @@
+<!--pages/order-detail/order-detail.wxml-->
+<wxs module="filters" src="../../utils/filters.wxs"></wxs>
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#1989fa">加载中...</van-loading>
+  </view>
+
+  <!-- 订单详情 -->
+  <view wx:else class="order-detail">
+    <!-- 订单状态 -->
+    <view class="status-card card">
+      <view
+        class="status-tag"
+        style="background-color: {{filters.getOrderStatusColor(order.status)}}"
+      >
+        {{filters.getOrderStatusText(order.status)}}
+      </view>
+      <view class="status-desc">
+        <text wx:if="{{order.status === 'pending'}}">请尽快完成支付</text>
+        <text wx:if="{{order.status === 'paid'}}">请到码头出示核销码</text>
+        <text wx:if="{{order.status === 'timing'}}">游玩愉快，注意时间哦</text>
+        <text wx:if="{{order.status === 'completed'}}">感谢您的使用</text>
+        <text wx:if="{{order.status === 'cancelled'}}">订单已取消</text>
+      </view>
+    </view>
+
+    <!-- 核销码（已支付才显示） -->
+    <view wx:if="{{order.status !== 'pending' && order.verificationCode}}" class="qrcode-card card">
+      <view class="qrcode-title">请到码头出示核销码</view>
+
+      <!-- 二维码 -->
+      <view class="qrcode-wrapper">
+        <image
+          src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{order.verificationCode}}"
+          class="qrcode-image"
+          mode="widthFix"
+        ></image>
+      </view>
+
+      <!-- 核销码文字 -->
+      <view class="qrcode-section">
+        <view class="qrcode-label">核销码</view>
+        <view class="qrcode-code">{{order.verificationCode}}</view>
+        <view class="qrcode-tip">请将此码出示给工作人员扫描</view>
+      </view>
+    </view>
+
+    <!-- 计时看板（计时中才显示） -->
+    <view wx:if="{{order.status === 'timing'}}" class="timing-board card">
+      <view class="timing-title">🕐 计时看板</view>
+      <view class="timing-info">
+        <view class="timing-row">
+          <text class="label">开始时间：</text>
+          <text class="value">{{filters.formatTime(order.startTime)}}</text>
+        </view>
+        <view class="timing-row highlight">
+          <text class="label">已用时长：</text>
+          <text class="value">{{filters.formatDuration(order.usedMinutes)}}</text>
+        </view>
+        <view class="timing-row">
+          <text class="label">包含时长：</text>
+          <text class="value">{{filters.formatDuration(order.includedMinutes)}}</text>
+        </view>
+        <view wx:if="{{order.overtimeMinutes > 0}}" class="timing-row warning">
+          <text class="label">已超时：</text>
+          <text class="value">{{filters.formatDuration(order.overtimeMinutes)}}</text>
+        </view>
+        <view wx:if="{{order.overtimeFee > 0}}" class="timing-row warning">
+          <text class="label">超时费用：</text>
+          <text class="value price">¥{{filters.formatMoney(order.overtimeFee)}}</text>
+        </view>
+        <view class="timing-row total">
+          <text class="label">预计总费用：</text>
+          <text class="value price">¥{{filters.formatMoney(order.estimatedTotalFee)}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="order-info card">
+      <view class="info-title">订单信息</view>
+      <van-cell-group>
+        <van-cell title="订单号" value="{{order.orderNo}}" />
+        <van-cell title="船型" value="{{order.boatTypeName}}" />
+        <van-cell wx:if="{{order.boatNumber}}" title="船号" value="{{order.boatNumber}}" />
+        <van-cell title="基础票价" value="¥{{filters.formatMoney(order.basePrice)}}" />
+        <van-cell title="押金" value="¥{{filters.formatMoney(order.depositAmount)}}" />
+        <van-cell
+          title="订单总额"
+          value="¥{{filters.formatMoney(order.totalAmount)}}"
+          value-class="price"
+        />
+        <van-cell title="创建时间" value="{{filters.formatTime(order.createdAt)}}" />
+        <van-cell
+          wx:if="{{order.completedAt}}"
+          title="完成时间"
+          value="{{filters.formatTime(order.completedAt)}}"
+        />
+      </van-cell-group>
+    </view>
+
+    <!-- 结算信息（已完成订单才显示） -->
+    <view wx:if="{{order.status === 'completed'}}" class="settlement-info card">
+      <view class="info-title">结算信息</view>
+      <van-cell-group>
+        <van-cell title="使用时长" value="{{filters.formatDuration(order.usedMinutes)}}" />
+        <van-cell
+          wx:if="{{order.overtimeMinutes > 0}}"
+          title="超时时长"
+          value="{{filters.formatDuration(order.overtimeMinutes)}}"
+        />
+        <van-cell
+          wx:if="{{order.overtimeFee > 0}}"
+          title="超时费用"
+          value="¥{{filters.formatMoney(order.overtimeFee)}}"
+        />
+        <van-cell
+          title="退款金额"
+          value="¥{{filters.formatMoney(order.refundAmount)}}"
+          value-class="price"
+        />
+        <van-cell
+          title="最终费用"
+          value="¥{{filters.formatMoney(order.finalAmount)}}"
+          value-class="price"
+        />
+      </van-cell-group>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="action-bar">
+      <van-button
+        wx:if="{{order.status === 'pending'}}"
+        type="default"
+        size="large"
+        round
+        bindtap="cancelOrder"
+        custom-class="cancel-btn"
+      >
+        取消订单
+      </van-button>
+      <van-button
+        wx:if="{{order.status === 'pending'}}"
+        type="primary"
+        size="large"
+        round
+        bindtap="gotoPayment"
+        custom-class="pay-btn"
+      >
+        去支付
+      </van-button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,20 @@
+/* WXS 格式化工具 */
+
+/* 格式化金额（保留2位小数） */
+var formatMoney = function(amount) {
+  if (amount == null || amount == undefined || amount == '') {
+    return '0.00';
+  }
+
+  var num = parseFloat(amount);
+
+  if (isNaN(num)) {
+    return '0.00';
+  }
+
+  return num.toFixed(2);
+};
+
+module.exports = {
+  formatMoney: formatMoney
+};

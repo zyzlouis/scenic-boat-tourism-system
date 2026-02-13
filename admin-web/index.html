@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>翠屏湖景区游船管理后台</title>
+  <!-- Element Plus CSS -->
+  <link rel="stylesheet" href="https://cdn.staticfile.net/element-plus/2.4.4/index.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: #f5f7fa;
+    }
+    #app {
+      height: 100vh;
+    }
+    /* 登录页面样式 */
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .login-box {
+      width: 400px;
+      padding: 40px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    }
+    .login-title {
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 30px;
+      color: #333;
+    }
+    /* 主界面样式 */
+    .admin-container {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 240px;
+      background: #304156;
+      color: white;
+    }
+    .sidebar-header {
+      height: 60px;
+      line-height: 60px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      background: #1f2d3d;
+      border-bottom: 1px solid #1f2d3d;
+    }
+    .sidebar-menu {
+      padding: 10px 0;
+    }
+    .menu-item {
+      height: 50px;
+      line-height: 50px;
+      padding: 0 20px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+    }
+    .menu-item:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .menu-item.active {
+      background: #409eff;
+    }
+    .menu-icon {
+      margin-right: 10px;
+      font-size: 16px;
+    }
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .header {
+      height: 60px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+    .header-title {
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+    .content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .page-title {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+    /* 表格样式优化 */
+    .data-table {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    /* 图片预览 */
+    .image-preview {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    /* 状态标签 */
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .status-enabled {
+      background: #e7f9f0;
+      color: #00a870;
+    }
+    .status-disabled {
+      background: #fef0f0;
+      color: #f56c6c;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 登录页面 -->
+    <div v-if="!isLoggedIn" class="login-container">
+      <div class="login-box">
+        <div class="login-title">景区游船管理后台</div>
+        <el-form :model="loginForm" @submit.prevent="handleLogin">
+          <el-form-item>
+            <el-input
+              v-model="loginForm.username"
+              placeholder="请输入用户名"
+              prefix-icon="User"
+              size="large"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-input
+              v-model="loginForm.password"
+              type="password"
+              placeholder="请输入密码"
+              prefix-icon="Lock"
+              size="large"
+              @keyup.enter="handleLogin"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button
+              type="primary"
+              size="large"
+              style="width: 100%"
+              :loading="loginLoading"
+              @click="handleLogin"
+            >
+              登录
+            </el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div v-else class="admin-container">
+      <!-- 侧边栏 -->
+      <div class="sidebar">
+        <div class="sidebar-header">游船管理系统</div>
+        <div class="sidebar-menu">
+          <div
+            v-for="menu in menus"
+            :key="menu.key"
+            class="menu-item"
+            :class="{ active: currentMenu === menu.key }"
+            @click="switchMenu(menu.key)"
+          >
+            <span class="menu-icon">{{ menu.icon }}</span>
+            <span>{{ menu.label }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主内容区 -->
+      <div class="main-container">
+        <!-- 顶部导航 -->
+        <div class="header">
+          <div class="header-title">{{ getCurrentMenuLabel() }}</div>
+          <div class="header-user">
+            <span>{{ currentUser.realName || currentUser.username }}</span>
+            <el-button type="danger" size="small" @click="handleLogout">退出</el-button>
+          </div>
+        </div>
+
+        <!-- 内容区 -->
+        <div class="content">
+          <!-- 船型管理 -->
+          <div v-if="currentMenu === 'boatTypes'">
+            <div class="page-header">
+              <div class="page-title">船型管理</div>
+              <el-button type="primary" @click="openDialog('boatTypes', 'add')">新增船型</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="boatTypesData" v-loading="loading">
+                <el-table-column prop="_id" label="ID" width="180" />
+                <el-table-column label="图片" width="100">
+                  <template #default="{ row }">
+                    <el-image
+                      v-if="row.imageUrl"
+                      :src="row.imageUrl"
+                      :preview-src-list="[row.imageUrl]"
+                      class="image-preview"
+                      fit="cover"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column prop="name" label="船型名称" width="150" />
+                <el-table-column prop="description" label="描述" />
+                <el-table-column prop="maxCapacity" label="最大载客" width="100" />
+                <el-table-column label="基础价格" width="100">
+                  <template #default="{ row }">
+                    ¥{{ row.pricing?.basePrice }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="sort" label="排序" width="80" />
+                <el-table-column label="状态" width="100">
+                  <template #default="{ row }">
+                    <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="openDialog('boatTypes', 'edit', row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteItem('boatTypes', row._id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <!-- 船只管理 -->
+          <div v-if="currentMenu === 'boats'">
+            <div class="page-header">
+              <div class="page-title">船只管理</div>
+              <el-button type="primary" @click="openDialog('boats', 'add')">新增船只</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="boatsData" v-loading="loading">
+                <el-table-column prop="_id" label="ID" width="180" />
+                <el-table-column prop="boatNumber" label="船号" width="150" />
+                <el-table-column label="船型" width="150">
+                  <template #default="{ row }">
+                    {{ getBoatTypeName(row.boatTypeId) }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" width="120">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.status === 'idle'" type="success">空闲</el-tag>
+                    <el-tag v-else-if="row.status === 'in_use'" type="warning">使用中</el-tag>
+                    <el-tag v-else type="info">维护中</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="启用状态" width="100">
+                  <template #default="{ row }">
+                    <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="lastUsedAt" label="最后使用时间" width="180" />
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="openDialog('boats', 'edit', row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteItem('boats', row._id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <!-- 员工管理 -->
+          <div v-if="currentMenu === 'staff'">
+            <div class="page-header">
+              <div class="page-title">员工管理</div>
+              <el-button type="primary" @click="openDialog('staff', 'add')">新增员工</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="staffData" v-loading="loading">
+                <el-table-column prop="_id" label="ID" width="180" />
+                <el-table-column prop="username" label="用户名" width="150" />
+                <el-table-column prop="realName" label="真实姓名" width="150" />
+                <el-table-column prop="phone" label="手机号" width="150" />
+                <el-table-column label="角色" width="120">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.role === 'admin'" type="danger">管理员</el-tag>
+                    <el-tag v-else>员工</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" width="100">
+                  <template #default="{ row }">
+                    <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="200" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="openDialog('staff', 'edit', row)">编辑</el-button>
+                    <el-button size="small" type="warning" @click="openDialog('staff', 'password', row)">改密码</el-button>
+                    <el-button size="small" type="danger" @click="deleteItem('staff', row._id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <!-- 轮播图管理 -->
+          <div v-if="currentMenu === 'banners'">
+            <div class="page-header">
+              <div class="page-title">轮播图管理</div>
+              <el-button type="primary" @click="openDialog('banners', 'add')">新增轮播图</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="bannersData" v-loading="loading">
+                <el-table-column prop="_id" label="ID" width="180" />
+                <el-table-column label="图片" width="120">
+                  <template #default="{ row }">
+                    <el-image
+                      v-if="row.imageUrl"
+                      :src="row.imageUrl"
+                      :preview-src-list="[row.imageUrl]"
+                      class="image-preview"
+                      fit="cover"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column prop="title" label="标题" width="200" />
+                <el-table-column label="链接类型" width="120">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.linkType === 'none'">无链接</el-tag>
+                    <el-tag v-else-if="row.linkType === 'page'" type="success">小程序页面</el-tag>
+                    <el-tag v-else type="warning">外部链接</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="linkUrl" label="链接地址" show-overflow-tooltip />
+                <el-table-column prop="sort" label="排序" width="80" />
+                <el-table-column label="状态" width="100">
+                  <template #default="{ row }">
+                    <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="openDialog('banners', 'edit', row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteItem('banners', row._id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <!-- 公告管理 -->
+          <div v-if="currentMenu === 'announcements'">
+            <div class="page-header">
+              <div class="page-title">公告管理</div>
+              <el-button type="primary" @click="openDialog('announcements', 'add')">新增公告</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="announcementsData" v-loading="loading">
+                <el-table-column prop="_id" label="ID" width="180" />
+                <el-table-column prop="title" label="标题" width="200" />
+                <el-table-column label="类型" width="100">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.type === 'warning'" type="warning">警告</el-tag>
+                    <el-tag v-else-if="row.type === 'urgent'" type="danger">紧急</el-tag>
+                    <el-tag v-else type="info">通知</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="首页显示" width="100">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.showOnHome" type="success">是</el-tag>
+                    <el-tag v-else type="info">否</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="startDate" label="开始时间" width="180" />
+                <el-table-column prop="endDate" label="结束时间" width="180" />
+                <el-table-column prop="sort" label="排序" width="80" />
+                <el-table-column label="状态" width="100">
+                  <template #default="{ row }">
+                    <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="openDialog('announcements', 'edit', row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteItem('announcements', row._id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 通用编辑对话框 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <!-- 船型表单 -->
+      <el-form v-if="dialogType === 'boatTypes'" :model="dialogForm" label-width="120px">
+        <el-form-item label="船型名称">
+          <el-input v-model="dialogForm.name" placeholder="请输入船型名称" />
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="dialogForm.description" type="textarea" :rows="3" placeholder="请输入描述" />
+        </el-form-item>
+        <el-form-item label="最大载客">
+          <el-input-number v-model="dialogForm.maxCapacity" :min="1" :max="20" />
+        </el-form-item>
+        <el-form-item label="基础票价">
+          <el-input-number v-model="dialogForm.pricing.basePrice" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="押金金额">
+          <el-input-number v-model="dialogForm.pricing.depositAmount" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="包含时长(分钟)">
+          <el-input-number v-model="dialogForm.pricing.includedMinutes" :min="1" />
+        </el-form-item>
+        <el-form-item label="超时费率(元/分)">
+          <el-input-number v-model="dialogForm.pricing.overtimeRate" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="船型图片">
+          <el-upload
+            :action="''"
+            :auto-upload="false"
+            :on-change="handleImageChange"
+            :show-file-list="false"
+            accept="image/*"
+          >
+            <el-button size="small" type="primary">选择图片</el-button>
+          </el-upload>
+          <el-image
+            v-if="dialogForm.imageUrl"
+            :src="dialogForm.imageUrl"
+            style="width: 200px; height: 150px; margin-top: 10px"
+            fit="contain"
+          />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="dialogForm.sort" :min="0" />
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="dialogForm.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <!-- 船只表单 -->
+      <el-form v-if="dialogType === 'boats'" :model="dialogForm" label-width="120px">
+        <el-form-item label="船号">
+          <el-input v-model="dialogForm.boatNumber" placeholder="例如: E-001" />
+        </el-form-item>
+        <el-form-item label="船型">
+          <el-select v-model="dialogForm.boatTypeId" placeholder="请选择船型">
+            <el-option
+              v-for="type in boatTypesData"
+              :key="type._id"
+              :label="type.name"
+              :value="type._id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="dialogForm.status" placeholder="请选择状态">
+            <el-option label="空闲" value="idle" />
+            <el-option label="使用中" value="in_use" />
+            <el-option label="维护中" value="maintenance" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="dialogForm.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <!-- 员工表单 -->
+      <el-form v-if="dialogType === 'staff' && dialogMode !== 'password'" :model="dialogForm" label-width="120px">
+        <el-form-item label="用户名">
+          <el-input v-model="dialogForm.username" placeholder="请输入用户名" :disabled="dialogMode === 'edit'" />
+        </el-form-item>
+        <el-form-item label="密码" v-if="dialogMode === 'add'">
+          <el-input v-model="dialogForm.password" type="password" placeholder="请输入密码" />
+        </el-form-item>
+        <el-form-item label="真实姓名">
+          <el-input v-model="dialogForm.realName" placeholder="请输入真实姓名" />
+        </el-form-item>
+        <el-form-item label="手机号">
+          <el-input v-model="dialogForm.phone" placeholder="请输入手机号" />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select v-model="dialogForm.role" placeholder="请选择角色">
+            <el-option label="员工" value="staff" />
+            <el-option label="管理员" value="admin" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="dialogForm.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <!-- 修改密码表单 -->
+      <el-form v-if="dialogType === 'staff' && dialogMode === 'password'" :model="dialogForm" label-width="120px">
+        <el-form-item label="新密码">
+          <el-input v-model="dialogForm.newPassword" type="password" placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="dialogForm.confirmPassword" type="password" placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+
+      <!-- 轮播图表单 -->
+      <el-form v-if="dialogType === 'banners'" :model="dialogForm" label-width="120px">
+        <el-form-item label="标题">
+          <el-input v-model="dialogForm.title" placeholder="请输入标题" />
+        </el-form-item>
+        <el-form-item label="轮播图图片">
+          <el-upload
+            :action="''"
+            :auto-upload="false"
+            :on-change="handleImageChange"
+            :show-file-list="false"
+            accept="image/*"
+          >
+            <el-button size="small" type="primary">选择图片</el-button>
+          </el-upload>
+          <el-image
+            v-if="dialogForm.imageUrl"
+            :src="dialogForm.imageUrl"
+            style="width: 300px; height: 150px; margin-top: 10px"
+            fit="contain"
+          />
+        </el-form-item>
+        <el-form-item label="链接类型">
+          <el-select v-model="dialogForm.linkType" placeholder="请选择链接类型">
+            <el-option label="无链接" value="none" />
+            <el-option label="小程序页面" value="page" />
+            <el-option label="外部链接" value="web" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="链接地址" v-if="dialogForm.linkType !== 'none'">
+          <el-input v-model="dialogForm.linkUrl" placeholder="请输入链接地址" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="dialogForm.sort" :min="0" />
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="dialogForm.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <!-- 公告表单 -->
+      <el-form v-if="dialogType === 'announcements'" :model="dialogForm" label-width="120px">
+        <el-form-item label="标题">
+          <el-input v-model="dialogForm.title" placeholder="请输入标题" />
+        </el-form-item>
+        <el-form-item label="内容">
+          <el-input v-model="dialogForm.content" type="textarea" :rows="5" placeholder="请输入内容" />
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="dialogForm.type" placeholder="请选择类型">
+            <el-option label="通知" value="info" />
+            <el-option label="警告" value="warning" />
+            <el-option label="紧急" value="urgent" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="首页显示">
+          <el-switch v-model="dialogForm.showOnHome" />
+        </el-form-item>
+        <el-form-item label="开始时间">
+          <el-date-picker
+            v-model="dialogForm.startDate"
+            type="datetime"
+            placeholder="选择开始时间"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="结束时间">
+          <el-date-picker
+            v-model="dialogForm.endDate"
+            type="datetime"
+            placeholder="选择结束时间"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="dialogForm.sort" :min="0" />
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="dialogForm.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleSave" :loading="saveLoading">保存</el-button>
+      </template>
+    </el-dialog>
+  </div>
+
+  <!-- Vue 3 -->
+  <script src="https://cdn.staticfile.net/vue/3.3.11/vue.global.min.js"></script>
+  <!-- Element Plus -->
+<script src="https://cdn.staticfile.net/element-plus/2.4.4/index.full.min.js"></script>
+  <!-- Element Plus Icon -->
+<script src="https://cdn.staticfile.net/element-plus-icons-vue/2.1.0/index.iife.min.js"></script>
+  <!-- Cloudbase JS SDK -->
+<script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/2.2.0/cloudbase.full.js"></script>
+
+  <script>
+    const { createApp } = Vue;
+    const { ElMessage, ElMessageBox } = ElementPlus;
+
+    // 请在这里配置你的云开发环境ID
+    const ENV_ID = 'cc-5gos3ctb46510316'; // 替换为你的环境ID
+
+    createApp({
+      data() {
+        return {
+          // 登录相关
+          isLoggedIn: false,
+          loginForm: {
+            username: '',
+            password: ''
+          },
+          loginLoading: false,
+          currentUser: {},
+
+          // 菜单
+          menus: [
+            { key: 'boatTypes', label: '船型管理', icon: '🚤' },
+            { key: 'boats', label: '船只管理', icon: '⛵' },
+            { key: 'staff', label: '员工管理', icon: '👥' },
+            { key: 'banners', label: '轮播图管理', icon: '🖼️' },
+            { key: 'announcements', label: '公告管理', icon: '📢' }
+          ],
+          currentMenu: 'boatTypes',
+
+          // 数据
+          boatTypesData: [],
+          boatsData: [],
+          staffData: [],
+          bannersData: [],
+          announcementsData: [],
+
+          // 对话框
+          dialogVisible: false,
+          dialogType: '',
+          dialogMode: '', // add / edit / password
+          dialogForm: {},
+          dialogTitle: '',
+
+          // 状态
+          loading: false,
+          saveLoading: false,
+
+          // Cloudbase 实例
+          app: null,
+          db: null,
+          auth: null,
+
+          // 图片上传临时文件
+          tempImageFile: null
+        };
+      },
+      async mounted() {
+        // 初始化云开发
+        this.initCloudbase();
+
+        // 检查登录状态
+        const savedUser = localStorage.getItem('adminUser');
+        if (savedUser) {
+          this.currentUser = JSON.parse(savedUser);
+          this.isLoggedIn = true;
+          await this.loadData();
+        }
+      },
+      methods: {
+        // 初始化云开发
+        initCloudbase() {
+          // 检查 CloudBase SDK 是否加载成功
+          if (typeof cloudbase === 'undefined') {
+            console.error('CloudBase SDK 加载失败，请检查网络连接');
+            ElMessage.error('系统初始化失败，请刷新页面重试');
+            return;
+          }
+
+          try {
+            this.app = cloudbase.init({
+              env: ENV_ID
+            });
+            this.db = this.app.database();
+            this.auth = this.app.auth({
+              persistence: 'local'
+            });
+            console.log('CloudBase 初始化成功，环境ID:', ENV_ID);
+          } catch (error) {
+            console.error('CloudBase 初始化失败:', error);
+            ElMessage.error('系统初始化失败: ' + error.message);
+          }
+        },
+
+        // 登录
+        async handleLogin() {
+          if (!this.loginForm.username || !this.loginForm.password) {
+            ElMessage.error('请输入用户名和密码');
+            return;
+          }
+
+          // 检查 CloudBase 是否初始化
+          if (!this.app) {
+            ElMessage.error('系统未初始化，请刷新页面');
+            return;
+          }
+
+          this.loginLoading = true;
+          try {
+            // 调用云函数验证登录
+            const res = await this.app.callFunction({
+              name: 'staffLogin',
+              data: {
+                username: this.loginForm.username,
+                password: this.loginForm.password
+              }
+            });
+
+            if (res.result.code === 200) {
+              const staffInfo = res.result.data.staffInfo;
+
+              // 检查是否是管理员
+              if (staffInfo.role !== 'admin') {
+                ElMessage.error('只有管理员才能登录后台');
+                this.loginLoading = false;
+                return;
+              }
+
+              this.currentUser = staffInfo;
+              this.isLoggedIn = true;
+              localStorage.setItem('adminUser', JSON.stringify(staffInfo));
+
+              ElMessage.success('登录成功');
+              await this.loadData();
+            } else {
+              ElMessage.error(res.result.message || '登录失败');
+            }
+          } catch (error) {
+            console.error('登录失败:', error);
+            ElMessage.error('登录失败，请检查网络连接');
+          }
+          this.loginLoading = false;
+        },
+
+        // 退出登录
+        handleLogout() {
+          ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(() => {
+            this.isLoggedIn = false;
+            this.currentUser = {};
+            this.loginForm = { username: '', password: '' };
+            localStorage.removeItem('adminUser');
+            ElMessage.success('已退出登录');
+          }).catch(() => {});
+        },
+
+        // 切换菜单
+        async switchMenu(key) {
+          this.currentMenu = key;
+          await this.loadData();
+        },
+
+        // 获取当前菜单标签
+        getCurrentMenuLabel() {
+          const menu = this.menus.find(m => m.key === this.currentMenu);
+          return menu ? menu.label : '';
+        },
+
+        // 加载数据
+        async loadData() {
+          this.loading = true;
+          try {
+            const collection = this.currentMenu;
+            const res = await this.db.collection(collection).get();
+
+            switch (collection) {
+              case 'boatTypes':
+                this.boatTypesData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+                break;
+              case 'boats':
+                this.boatsData = res.data;
+                // 加载船型数据以便显示
+                if (this.boatTypesData.length === 0) {
+                  const boatTypesRes = await this.db.collection('boatTypes').get();
+                  this.boatTypesData = boatTypesRes.data;
+                }
+                break;
+              case 'staff':
+                this.staffData = res.data;
+                break;
+              case 'banners':
+                this.bannersData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+                break;
+              case 'announcements':
+                this.announcementsData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+                break;
+            }
+          } catch (error) {
+            console.error('加载数据失败:', error);
+            ElMessage.error('加载数据失败');
+          }
+          this.loading = false;
+        },
+
+        // 打开对话框
+        openDialog(type, mode, row = null) {
+          this.dialogType = type;
+          this.dialogMode = mode;
+          this.tempImageFile = null;
+
+          if (mode === 'add') {
+            this.dialogTitle = '新增';
+            this.dialogForm = this.getEmptyForm(type);
+          } else if (mode === 'edit') {
+            this.dialogTitle = '编辑';
+            this.dialogForm = JSON.parse(JSON.stringify(row));
+          } else if (mode === 'password') {
+            this.dialogTitle = '修改密码';
+            this.dialogForm = {
+              _id: row._id,
+              newPassword: '',
+              confirmPassword: ''
+            };
+          }
+
+          this.dialogVisible = true;
+        },
+
+        // 获取空表单
+        getEmptyForm(type) {
+          const forms = {
+            boatTypes: {
+              name: '',
+              description: '',
+              maxCapacity: 4,
+              pricing: {
+                basePrice: 0,
+                depositAmount: 0,
+                includedMinutes: 60,
+                overtimeRate: 0
+              },
+              imageUrl: '',
+              sort: 0,
+              enabled: true
+            },
+            boats: {
+              boatNumber: '',
+              boatTypeId: '',
+              status: 'idle',
+              enabled: true
+            },
+            staff: {
+              username: '',
+              password: '',
+              realName: '',
+              phone: '',
+              role: 'staff',
+              enabled: true
+            },
+            banners: {
+              title: '',
+              imageUrl: '',
+              linkType: 'none',
+              linkUrl: '',
+              sort: 0,
+              enabled: true
+            },
+            announcements: {
+              title: '',
+              content: '',
+              type: 'info',
+              showOnHome: true,
+              startDate: new Date(),
+              endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              sort: 0,
+              enabled: true
+            }
+          };
+          return forms[type] || {};
+        },
+
+        // 处理图片选择
+        async handleImageChange(file) {
+          this.tempImageFile = file.raw;
+
+          // 预览图片
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            this.dialogForm.imageUrl = e.target.result;
+          };
+          reader.readAsDataURL(file.raw);
+        },
+
+        // 上传图片到云存储
+        async uploadImage(file) {
+          try {
+            const fileExtension = file.name.split('.').pop();
+            const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExtension}`;
+            const cloudPath = `admin/${fileName}`;
+
+            // 上传文件
+            const result = await this.app.uploadFile({
+              cloudPath: cloudPath,
+              filePath: file
+            });
+
+            // 获取临时链接
+            const tempFileURL = await this.app.getTempFileURL({
+              fileList: [result.fileID]
+            });
+
+            return tempFileURL.fileList[0].tempFileURL;
+          } catch (error) {
+            console.error('上传图片失败:', error);
+            throw error;
+          }
+        },
+
+        // 保存
+        async handleSave() {
+          // 修改密码特殊处理
+          if (this.dialogType === 'staff' && this.dialogMode === 'password') {
+            if (!this.dialogForm.newPassword) {
+              ElMessage.error('请输入新密码');
+              return;
+            }
+            if (this.dialogForm.newPassword !== this.dialogForm.confirmPassword) {
+              ElMessage.error('两次输入的密码不一致');
+              return;
+            }
+
+            this.saveLoading = true;
+            try {
+              // 调用云函数修改密码
+              const res = await this.app.callFunction({
+                name: 'updateStaffPassword',
+                data: {
+                  staffId: this.dialogForm._id,
+                  newPassword: this.dialogForm.newPassword
+                }
+              });
+
+              if (res.result.code === 200) {
+                ElMessage.success('密码修改成功');
+                this.dialogVisible = false;
+              } else {
+                ElMessage.error(res.result.message || '密码修改失败');
+              }
+            } catch (error) {
+              console.error('密码修改失败:', error);
+              ElMessage.error('密码修改失败');
+            }
+            this.saveLoading = false;
+            return;
+          }
+
+          // 表单验证
+          if (!this.validateForm()) {
+            return;
+          }
+
+          this.saveLoading = true;
+          try {
+            // 如果有图片需要上传
+            if (this.tempImageFile) {
+              const imageUrl = await this.uploadImage(this.tempImageFile);
+              this.dialogForm.imageUrl = imageUrl;
+            }
+
+            const collection = this.dialogType;
+            const data = { ...this.dialogForm };
+
+            // 处理日期字段
+            if (collection === 'announcements') {
+              if (data.startDate) data.startDate = new Date(data.startDate);
+              if (data.endDate) data.endDate = new Date(data.endDate);
+            }
+
+            // 添加时间戳
+            if (this.dialogMode === 'add') {
+              data.createdAt = new Date();
+            }
+            data.updatedAt = new Date();
+
+            if (this.dialogMode === 'add') {
+              // 新增
+              delete data._id;
+
+              // 如果是员工，调用云函数进行密码加密
+              if (collection === 'staff') {
+                const res = await this.app.callFunction({
+                  name: 'createStaff',
+                  data: data
+                });
+                if (res.result.code !== 200) {
+                  throw new Error(res.result.message);
+                }
+              } else {
+                await this.db.collection(collection).add(data);
+              }
+
+              ElMessage.success('新增成功');
+            } else {
+              // 编辑
+              const id = data._id;
+              delete data._id;
+
+              // 如果是员工，不允许直接修改密码
+              if (collection === 'staff') {
+                delete data.password;
+              }
+
+              await this.db.collection(collection).doc(id).update(data);
+              ElMessage.success('保存成功');
+            }
+
+            this.dialogVisible = false;
+            await this.loadData();
+          } catch (error) {
+            console.error('保存失败:', error);
+            ElMessage.error(error.message || '保存失败');
+          }
+          this.saveLoading = false;
+        },
+
+        // 表单验证
+        validateForm() {
+          const type = this.dialogType;
+          const form = this.dialogForm;
+
+          if (type === 'boatTypes') {
+            if (!form.name) {
+              ElMessage.error('请输入船型名称');
+              return false;
+            }
+          } else if (type === 'boats') {
+            if (!form.boatNumber) {
+              ElMessage.error('请输入船号');
+              return false;
+            }
+            if (!form.boatTypeId) {
+              ElMessage.error('请选择船型');
+              return false;
+            }
+          } else if (type === 'staff') {
+            if (!form.username) {
+              ElMessage.error('请输入用户名');
+              return false;
+            }
+            if (this.dialogMode === 'add' && !form.password) {
+              ElMessage.error('请输入密码');
+              return false;
+            }
+          } else if (type === 'banners') {
+            if (!form.title) {
+              ElMessage.error('请输入标题');
+              return false;
+            }
+            if (!form.imageUrl) {
+              ElMessage.error('请上传图片');
+              return false;
+            }
+          } else if (type === 'announcements') {
+            if (!form.title) {
+              ElMessage.error('请输入标题');
+              return false;
+            }
+            if (!form.content) {
+              ElMessage.error('请输入内容');
+              return false;
+            }
+          }
+
+          return true;
+        },
+
+        // 删除
+        async deleteItem(collection, id) {
+          ElMessageBox.confirm('确定要删除这条记录吗？', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(async () => {
+            try {
+              await this.db.collection(collection).doc(id).remove();
+              ElMessage.success('删除成功');
+              await this.loadData();
+            } catch (error) {
+              console.error('删除失败:', error);
+              ElMessage.error('删除失败');
+            }
+          }).catch(() => {});
+        },
+
+        // 获取船型名称
+        getBoatTypeName(typeId) {
+          const type = this.boatTypesData.find(t => t._id === typeId);
+          return type ? type.name : '-';
+        }
+      }
+    }).use(ElementPlus).mount('#app');
+  </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+[
+  {
+    "code": "DOUBLE",
+    "name": "双人船",
+    "description": "适合情侣、朋友2人乘坐",
+    "capacity": 2,
+    "imageUrl": "",
+    "isActive": true,
+    "isDeleted": false,
+    "sortOrder": 1
+  },
+  {
+    "code": "FOUR",
+    "name": "四人船",
+    "description": "适合家庭、小团队4人乘坐",
+    "capacity": 4,
+    "imageUrl": "",
+    "isActive": true,
+    "isDeleted": false,
+    "sortOrder": 2
+  },
+  {
+    "code": "SIX",
+    "name": "六人船",
+    "description": "适合大家庭、团队6人乘坐",
+    "capacity": 6,
+    "imageUrl": "",
+    "isActive": true,
+    "isDeleted": false,
+    "sortOrder": 3
+  }
+]

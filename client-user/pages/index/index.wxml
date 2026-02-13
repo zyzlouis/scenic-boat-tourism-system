@@ -1,0 +1,125 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 轮播图 -->
+  <view wx:if="{{banners.length > 0}}" class="swiper-section">
+    <swiper
+      class="swiper-container"
+      autoplay="{{true}}"
+      interval="{{3000}}"
+      duration="{{500}}"
+      circular="{{true}}"
+      indicator-dots="{{true}}"
+      indicator-color="rgba(255, 255, 255, 0.5)"
+      indicator-active-color="#ffffff"
+    >
+      <swiper-item wx:for="{{banners}}" wx:key="_id">
+        <image
+          class="swiper-image"
+          src="{{item.imageUrl}}"
+          mode="aspectFill"
+          bindtap="onBannerClick"
+          data-item="{{item}}"
+        />
+      </swiper-item>
+    </swiper>
+  </view>
+
+  <!-- 公告栏 -->
+  <view wx:if="{{announcements.length > 0}}" class="notice-section">
+    <view
+      class="notice-bar notice-{{announcements[0].type}}"
+      bindtap="onAnnouncementClick"
+      data-item="{{announcements[0]}}"
+    >
+      <view class="notice-icon">
+        <text wx:if="{{announcements[0].type === 'warning'}}">⚠️</text>
+        <text wx:elif="{{announcements[0].type === 'urgent'}}">🚨</text>
+        <text wx:else>ℹ️</text>
+      </view>
+      <view class="notice-content">
+        <text class="notice-text">{{announcements[0].title}}</text>
+      </view>
+      <view class="notice-arrow">
+        <van-icon name="arrow" size="16rpx" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 顶部欢迎区域 -->
+  <view class="header">
+    <view class="title">景区游船租赁</view>
+    <view class="subtitle">选择您心仪的船型，开启美好游湖之旅</view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#1989fa">加载中...</van-loading>
+  </view>
+
+  <!-- 船型列表 -->
+  <view wx:else class="boat-list">
+    <view
+      wx:for="{{boatTypes}}"
+      wx:key="id"
+      class="boat-card"
+      data-id="{{item.id}}"
+      data-type-name="{{item.name}}"
+      bindtap="selectBoatType"
+    >
+      <!-- 船型图片 -->
+      <view class="boat-image">
+        <image
+          src="{{item.imageUrl || '/images/boat-placeholder.png'}}"
+          mode="aspectFill"
+        />
+      </view>
+
+      <!-- 船型信息 -->
+      <view class="boat-info">
+        <view class="boat-name">{{item.name}}</view>
+        <view class="boat-desc">{{item.description}}</view>
+        <view class="boat-capacity">
+          <text class="icon">👥</text>
+          <text>最多{{item.maxCapacity}}人</text>
+        </view>
+
+        <!-- 价格信息 -->
+        <view class="price-info">
+          <view class="price-row">
+            <text class="label">门票价格：</text>
+            <text class="price">¥{{item.pricing.basePrice}}</text>
+          </view>
+          <view class="price-row">
+            <text class="label">押金：</text>
+            <text class="price">¥{{item.pricing.depositAmount}}</text>
+          </view>
+          <view class="price-row">
+            <text class="label">包含时长：</text>
+            <text>{{item.pricing.includedMinutes}}分钟</text>
+          </view>
+          <view class="price-row">
+            <text class="label">超时费率：</text>
+            <text>¥{{item.pricing.overtimeRate}}/分钟</text>
+          </view>
+        </view>
+
+        <!-- 租赁按钮 -->
+        <view class="boat-action">
+          <van-button
+            type="primary"
+            size="large"
+            round
+            custom-class="rent-button"
+          >
+            立即租赁
+          </van-button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!loading && boatTypes.length === 0}}" class="empty-container">
+    <van-empty description="暂无可租赁的船型" />
+  </view>
+</view>

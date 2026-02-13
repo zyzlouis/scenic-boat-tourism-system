@@ -1,0 +1,16 @@
+{
+  "name": "managestaff",
+  "version": "1.0.0",
+  "description": "员工管理云函数（新增/修改员工，自动处理密码加密）",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "latest",
+    "bcryptjs": "^2.4.3"
+  }
+}

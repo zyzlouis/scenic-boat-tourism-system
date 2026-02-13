@@ -1,0 +1,76 @@
+<!--pages/orders/orders.wxml-->
+<wxs module="filters" src="../../utils/filters.wxs"></wxs>
+<view class="container">
+  <!-- 顶部统计 -->
+  <view class="stats-card card">
+    <view class="stat-item">
+      <view class="stat-value">{{orders.length}}</view>
+      <view class="stat-label">计时中</view>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <view class="stat-value status-warning">
+        {{overtimeCount}}
+      </view>
+      <view class="stat-label">已超时</view>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#07c160">加载中...</van-loading>
+  </view>
+
+  <!-- 订单列表 -->
+  <view wx:elif="{{orders.length > 0}}" class="order-list">
+    <view
+      wx:for="{{orders}}"
+      wx:key="orderId"
+      class="order-item card"
+      data-order="{{item}}"
+      bindtap="handleOrder"
+    >
+      <!-- 订单头部 -->
+      <view class="order-header">
+        <view class="boat-number">
+          <text class="icon">🚤</text>
+          <text class="number">{{item.boatNumber}}</text>
+        </view>
+        <view class="boat-type">{{item.boatTypeName}}</view>
+      </view>
+
+      <!-- 订单信息 -->
+      <view class="order-body">
+        <view class="info-row">
+          <text class="label">游客：</text>
+          <text class="value">{{item.userNickname}}</text>
+        </view>
+        <view class="info-row">
+          <text class="label">开始：</text>
+          <text class="value">{{filters.formatTime(item.startTime)}}</text>
+        </view>
+        <view class="info-row highlight">
+          <text class="label">时长：</text>
+          <text class="value">{{filters.formatDuration(item.usedMinutes)}}</text>
+        </view>
+      </view>
+
+      <!-- 超时提醒 -->
+      <view wx:if="{{item.isOvertime}}" class="overtime-alert">
+        <text class="icon">⚠️</text>
+        <text class="text">已超时 {{filters.formatDuration(item.overtimeMinutes)}}</text>
+      </view>
+
+      <!-- 操作按钮 -->
+      <view class="order-action">
+        <view class="action-text">点击收船 →</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:else class="empty-container">
+    <van-empty description="暂无待处理订单" />
+    <view class="empty-tip">所有游船都已归还，辛苦了！✨</view>
+  </view>
+</view>

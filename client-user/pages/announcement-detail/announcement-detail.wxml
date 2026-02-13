@@ -1,0 +1,58 @@
+<!--pages/announcement-detail/announcement-detail.wxml-->
+<wxs module="util">
+  var formatTime = function(dateStr) {
+    if (!dateStr) return '';
+    var date = getDate(dateStr);
+    var year = date.getFullYear();
+    var month = ('0' + (date.getMonth() + 1)).slice(-2);
+    var day = ('0' + date.getDate()).slice(-2);
+    var hour = ('0' + date.getHours()).slice(-2);
+    var minute = ('0' + date.getMinutes()).slice(-2);
+    return year + '-' + month + '-' + day + ' ' + hour + ':' + minute;
+  };
+
+  var getTypeIcon = function(type) {
+    if (type === 'warning') return '⚠️';
+    if (type === 'urgent') return '🚨';
+    return 'ℹ️';
+  };
+
+  var getTypeText = function(type) {
+    if (type === 'warning') return '警告';
+    if (type === 'urgent') return '紧急';
+    return '通知';
+  };
+
+  module.exports = {
+    formatTime: formatTime,
+    getTypeIcon: getTypeIcon,
+    getTypeText: getTypeText
+  };
+</wxs>
+
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#1989fa">加载中...</van-loading>
+  </view>
+
+  <!-- 公告详情 -->
+  <view wx:else class="announcement-detail">
+    <!-- 公告头部 -->
+    <view class="announcement-header">
+      <view class="type-badge type-{{announcement.type}}">
+        <text class="type-icon">{{util.getTypeIcon(announcement.type)}}</text>
+        <text class="type-text">{{util.getTypeText(announcement.type)}}</text>
+      </view>
+      <view class="announcement-title">{{announcement.title}}</view>
+      <view class="announcement-time">
+        发布时间：{{announcement.formattedTime}}
+      </view>
+    </view>
+
+    <!-- 公告内容 -->
+    <view class="announcement-content">
+      <text class="content-text">{{announcement.content}}</text>
+    </view>
+  </view>
+</view>
