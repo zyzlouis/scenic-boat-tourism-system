@@ -20,7 +20,7 @@ Page({
 
     this.loadUserInfo()
     this.loadBalance()
-  }
+  },
 
   onShow() {
     // 每次显示页面时刷新余额
@@ -104,8 +104,16 @@ Page({
 
   // 跳转到充值页面
   goToRecharge() {
-    wx.navigateTo({
-      url: '/pages/recharge/recharge'
+    if (!this.data.rechargeEnabled) {
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
+      })
+      return
+    }
+    wx.showToast({
+      title: '充值功能开发中',
+      icon: 'none'
     })
   },
 
@@ -118,8 +126,16 @@ Page({
 
   // 跳转到充值记录
   goToRechargeLogs() {
-    wx.navigateTo({
-      url: '/pages/recharge-logs/recharge-logs'
+    if (!this.data.rechargeEnabled) {
+      wx.showToast({
+        title: '该功能暂未开放',
+        icon: 'none'
+      })
+      return
+    }
+    wx.showToast({
+      title: '充值记录功能开发中',
+      icon: 'none'
     })
   },
 

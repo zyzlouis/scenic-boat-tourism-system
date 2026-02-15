@@ -28,6 +28,7 @@ App({
 
   /**
    * 获取应用全局配置
+   * 从数据库读取 rechargeEnabled 开关控制储值功能显示/隐藏
    */
   async loadAppConfig() {
     try {
@@ -43,12 +44,12 @@ App({
         console.log('✅ 全局配置加载成功', appConfig);
       } else {
         console.error('获取配置失败:', res.result.message);
-        // 使用默认配置
+        // 使用默认配置（储值功能关闭）
         this.globalData.appConfig = { rechargeEnabled: false };
       }
     } catch (error) {
       console.error('加载配置失败:', error);
-      // 使用默认配置
+      // 使用默认配置（储值功能关闭）
       this.globalData.appConfig = { rechargeEnabled: false };
     }
   },

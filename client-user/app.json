@@ -5,8 +5,6 @@
     "pages/order-list/order-list",
     "pages/payment/payment",
     "pages/profile/profile",
-    "pages/recharge/recharge",
-    "pages/recharge-logs/recharge-logs",
     "pages/announcement-detail/announcement-detail",
     "pages/staff/login/login",
     "pages/staff/scan/scan",

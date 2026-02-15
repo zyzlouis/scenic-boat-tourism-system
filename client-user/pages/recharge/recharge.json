@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "充值",
-  "usingComponents": {
-    "van-button": "@vant/weapp/button/index",
-    "van-loading": "@vant/weapp/loading/index",
-    "van-tag": "@vant/weapp/tag/index"
-  }
-}
