@@ -1,11 +1,10 @@
-// 云函数：员工登录
+// 云函数：员工登录（明文密码）
 const cloud = require('wx-server-sdk')
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
 const db = cloud.database()
-const bcrypt = require('bcryptjs')
 
 exports.main = async (event, context) => {
   const { username, password } = event
@@ -43,10 +42,8 @@ exports.main = async (event, context) => {
 
     const staff = staffList[0]
 
-    // 验证密码（使用 bcrypt 验证）
-    const isPasswordValid = await bcrypt.compare(password, staff.password)
-
-    if (!isPasswordValid) {
+    // 验证密码（明文对比）
+    if (staff.password !== password) {
       return {
         code: 401,
         message: '用户名或密码错误',

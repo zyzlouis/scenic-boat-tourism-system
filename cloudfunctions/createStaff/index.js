@@ -1,6 +1,5 @@
-// cloudfunctions/createStaff/index.js
+// cloudfunctions/createStaff/index.js（明文密码）
 const cloud = require('wx-server-sdk')
-const bcrypt = require('bcryptjs')
 
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
@@ -24,14 +23,11 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 加密密码
-    const hashedPassword = await bcrypt.hash(password, 10)
-
-    // 创建员工
+    // 创建员工（密码直接保存明文）
     const result = await db.collection('staff').add({
       data: {
         username,
-        password: hashedPassword,
+        password: password,  // 明文密码
         realName,
         phone: phone || '',
         role: role || 'staff',

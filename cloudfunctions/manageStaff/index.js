@@ -1,11 +1,10 @@
-// 云函数：员工管理（新增/修改员工，自动处理密码加密）
+// 云函数：员工管理（明文密码）
 const cloud = require('wx-server-sdk')
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV
 })
 
 const db = cloud.database()
-const bcrypt = require('bcryptjs')
 
 exports.main = async (event, context) => {
   const { action, staffData, staffId } = event
@@ -70,13 +69,10 @@ async function createStaff(staffData) {
     }
   }
 
-  // 自动加密密码
-  const hashedPassword = await bcrypt.hash(password, 10)
-
   const now = new Date()
   const newStaff = {
     username: username,
-    password: hashedPassword,  // 加密后的密码
+    password: password,  // 明文密码
     realName: realName,
     phone: phone || null,
     role: role || 'staff',  // 默认为普通员工
@@ -123,12 +119,10 @@ async function resetPassword(staffId, newPassword) {
     }
   }
 
-  // 自动加密新密码
-  const hashedPassword = await bcrypt.hash(newPassword, 10)
-
+  // 直接保存明文密码
   await db.collection('staff').doc(staffId).update({
     data: {
-      password: hashedPassword,
+      password: newPassword,
       updatedAt: new Date()
     }
   })

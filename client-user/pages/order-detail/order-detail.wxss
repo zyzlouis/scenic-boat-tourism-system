@@ -40,6 +40,16 @@
   color: #333333;
 }
 
+.qrcode-wrapper {
+  display: flex;
+  justify-content: center;
+  margin: 32rpx 0;
+}
+
+.qrcode-image {
+  width: 400rpx;
+}
+
 .qrcode-code {
   font-size: 48rpx;
   font-weight: bold;

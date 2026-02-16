@@ -148,12 +148,93 @@ Page({
   },
 
   // 微信支付
-  payWithWechat() {
-    // TODO: 实际项目需要调用微信支付API
-    wx.showToast({
-      title: '微信支付功能开发中',
-      icon: 'none'
+  async payWithWechat() {
+    if (!this.data.order) {
+      wx.showToast({
+        title: '订单信息错误',
+        icon: 'none'
+      })
+      return
+    }
+
+    wx.showLoading({
+      title: '正在调起支付...',
+      mask: true
     })
+
+    try {
+      // 1. 调用云函数创建支付订单
+      const res = await wx.cloud.callFunction({
+        name: 'wechatPay',
+        data: {
+          orderId: this.data.order._id
+        }
+      })
+
+      wx.hideLoading()
+
+      console.log('💳 微信支付统一下单结果:', res.result)
+
+      if (res.result.code !== 200) {
+        wx.showToast({
+          title: res.result.message || '创建支付订单失败',
+          icon: 'none'
+        })
+        return
+      }
+
+      // 2. 获取支付参数
+      const payment = res.result.data.payment
+
+      // 3. 调起微信支付
+      wx.requestPayment({
+        ...payment,
+        success: (payRes) => {
+          console.log('✅ 支付成功:', payRes)
+
+          // 显示支付成功提示
+          wx.showModal({
+            title: '支付成功',
+            content: '订单支付成功！请稍等片刻，正在生成核销码...',
+            showCancel: false,
+            success: () => {
+              // 延迟跳转，等待支付回调处理完成
+              setTimeout(() => {
+                wx.redirectTo({
+                  url: `/pages/order-detail/order-detail?orderId=${this.data.order._id}`
+                })
+              }, 1500)
+            }
+          })
+        },
+        fail: (payErr) => {
+          console.error('❌ 支付失败:', payErr)
+
+          if (payErr.errMsg.indexOf('cancel') !== -1) {
+            // 用户取消支付
+            wx.showToast({
+              title: '已取消支付',
+              icon: 'none'
+            })
+          } else {
+            // 支付失败
+            wx.showModal({
+              title: '支付失败',
+              content: payErr.errMsg || '支付过程中出现错误，请重试',
+              showCancel: false
+            })
+          }
+        }
+      })
+
+    } catch (error) {
+      wx.hideLoading()
+      console.error('❌ 调起支付失败:', error)
+      wx.showToast({
+        title: '调起支付失败，请重试',
+        icon: 'none'
+      })
+    }
   },
 
   // 取消订单
