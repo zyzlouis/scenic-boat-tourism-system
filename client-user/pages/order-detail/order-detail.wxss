@@ -152,3 +152,7 @@
 .pay-btn {
   flex: 1;
 }
+
+.refund-btn {
+  flex: 1;
+}

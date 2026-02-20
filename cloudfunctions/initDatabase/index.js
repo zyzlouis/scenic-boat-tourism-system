@@ -299,6 +299,8 @@ const appSettingsData = [
     safetyNotice: "安全须知：\n\n1. 请穿好救生衣，听从工作人员指挥；\n2. 禁止在船上站立、打闹；\n3. 禁止将身体探出船外；\n4. 儿童须由成人陪同；\n5. 雷雨天气禁止游玩；\n6. 醉酒者禁止游玩。",
     aboutUs: "云湖景区位于XX省XX市，湖面面积约500亩，湖水清澈，风景优美。景区提供多种游船服务，适合家庭出游、情侣约会、团队活动。\n\n营业时间：每日08:00-18:00\n地址：XX省XX市XX路123号\n客服电话：0571-88888888",
     logoUrl: "cloud://boat-rental-xxx.png",
+    autoRefundEnabled: true,   // 自动退款开关，默认开启
+    autoRefundDays: 7,         // 自动退款天数，默认7天
     enabled: true,
     sort: 1,
     createdAt: new Date("2026-02-12T00:00:00.000Z"),

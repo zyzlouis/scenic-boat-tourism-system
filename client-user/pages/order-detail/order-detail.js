@@ -183,6 +183,66 @@ Page({
   },
 
   /**
+   * 申请退款
+   */
+  async applyRefund() {
+    const result = await wx.showModal({
+      title: '确认申请退款？',
+      content: `退款金额：¥${this.data.order.totalAmount.toFixed(2)}\n退款将在1-3个工作日内原路返回您的支付账户`,
+      confirmText: '确认退款',
+      cancelText: '我再想想',
+      confirmColor: '#1989fa'
+    });
+
+    if (!result.confirm) {
+      return;
+    }
+
+    wx.showLoading({
+      title: '退款处理中...',
+      mask: true
+    });
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'refundOrder',
+        data: {
+          orderId: this.data.orderId,
+          reason: '用户申请退款'
+        }
+      });
+
+      wx.hideLoading();
+
+      if (res.result.code === 200) {
+        wx.showModal({
+          title: '退款成功',
+          content: res.result.data.notice || '退款将在1-3个工作日内原路返回您的支付账户',
+          showCancel: false,
+          success: () => {
+            // 刷新订单详情
+            this.loadOrderDetail();
+          }
+        });
+      } else {
+        wx.showModal({
+          title: '退款失败',
+          content: res.result.message || '退款失败，请稍后重试',
+          showCancel: false
+        });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('❌ 申请退款失败:', error);
+      wx.showModal({
+        title: '退款失败',
+        content: '系统错误，请稍后重试',
+        showCancel: false
+      });
+    }
+  },
+
+  /**
    * 下拉刷新
    */
   async onPullDownRefresh() {

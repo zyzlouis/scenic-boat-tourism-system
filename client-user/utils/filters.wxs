@@ -57,6 +57,7 @@ function getOrderStatusText(status) {
     'timing': '计时中',
     'ended': '结算中',
     'completed': '已完成',
+    'refunded': '已退款',
     'cancelled': '已取消',
     'timeout': '超时异常'
   };
@@ -74,6 +75,7 @@ function getOrderStatusColor(status) {
     'timing': '#4caf50',
     'ended': '#9c27b0',
     'completed': '#9e9e9e',
+    'refunded': '#ff5722',
     'cancelled': '#f44336',
     'timeout': '#f44336'
   };

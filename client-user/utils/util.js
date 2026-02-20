@@ -62,6 +62,7 @@ const ORDER_STATUS_MAP = {
   timing: { text: '计时中', color: '#4caf50' },
   ended: { text: '结算中', color: '#9c27b0' },
   completed: { text: '已完成', color: '#9e9e9e' },
+  refunded: { text: '已退款', color: '#ff5722' },
   cancelled: { text: '已取消', color: '#f44336' },
   timeout: { text: '超时异常', color: '#f44336' }
 };

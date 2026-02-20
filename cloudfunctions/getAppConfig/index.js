@@ -19,6 +19,8 @@ const db = cloud.database()
  * - safetyNotice: 安全须知
  * - aboutUs: 关于我们
  * - logoUrl: Logo地址
+ * - autoRefundEnabled: 是否启用自动退款（boolean）
+ * - autoRefundDays: 自动退款天数（number）
  */
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
@@ -49,7 +51,9 @@ exports.main = async (event, context) => {
         refundRules: appConfig.refundRules || '',
         safetyNotice: appConfig.safetyNotice || '',
         aboutUs: appConfig.aboutUs || '',
-        logoUrl: appConfig.logoUrl || ''
+        logoUrl: appConfig.logoUrl || '',
+        autoRefundEnabled: appConfig.autoRefundEnabled !== false, // 自动退款开关，默认为true
+        autoRefundDays: appConfig.autoRefundDays || 7  // 自动退款天数，默认7天
       }
     }
   } catch (error) {

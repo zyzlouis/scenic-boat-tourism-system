@@ -23,5 +23,6 @@
   "appid": "wx030224083191d9f8",
   "miniprogramRoot": "client-user/",
   "cloudfunctionRoot": "cloudfunctions/",
-  "editorSetting": {}
+  "editorSetting": {},
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/"
 }
