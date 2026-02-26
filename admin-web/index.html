@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>翠屏湖景区游船管理后台</title>
-  <!-- Element Plus CSS -->
-  <link rel="stylesheet" href="https://cdn.staticfile.net/element-plus/2.4.4/index.min.css" />
+  <!-- Element Plus CSS (本地) -->
+  <link rel="stylesheet" href="lib/element-plus.css" />
   <style>
     * {
       margin: 0;
@@ -152,6 +152,35 @@
       background: #fef0f0;
       color: #f56c6c;
     }
+    .stat-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px 24px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 14px;
+      color: #999;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: bold;
+    }
+    /* 修复 Element Plus 日期选择器弹出面板透明问题 */
+    .el-picker-panel,
+    .el-date-range-picker,
+    .el-date-picker {
+      background: #fff !important;
+    }
+    .el-picker-panel .el-date-table td .el-date-table-cell {
+      background: #fff;
+    }
+    /* 筛选区日期选择器宽度限制 */
+    .order-filter .el-date-editor {
+      width: 300px !important;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -226,6 +255,176 @@
 
         <!-- 内容区 -->
         <div class="content">
+          <!-- 订单管理 -->
+          <div v-if="currentMenu === 'orders'">
+            <div class="page-header">
+              <div class="page-title">订单管理</div>
+            </div>
+            <div class="data-table">
+              <div class="order-filter" style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 14px; color: #606266; white-space: nowrap;">日期范围：</span>
+                <div style="width: 300px; flex-shrink: 0;">
+                  <el-date-picker
+                    v-model="orderFilter.dateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    value-format="YYYY-MM-DD"
+                    style="width: 100%"
+                    :teleported="false"
+                  />
+                </div>
+                <span style="font-size: 14px; color: #606266; white-space: nowrap;">订单状态：</span>
+                <select v-model="orderFilter.status" style="width: 140px; height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 8px; font-size: 14px; color: #606266; background: #fff; outline: none; cursor: pointer;">
+                  <option value="">全部状态</option>
+                  <option value="pending">未支付</option>
+                  <option value="paid">待核销</option>
+                  <option value="timing">游玩中</option>
+                  <option value="completed">已完成</option>
+                  <option value="refunded">已退款</option>
+                </select>
+                <span style="font-size: 14px; color: #606266; white-space: nowrap;">船型：</span>
+                <select v-model="orderFilter.boatTypeCode" style="width: 140px; height: 32px; border: 1px solid #dcdfe6; border-radius: 4px; padding: 0 8px; font-size: 14px; color: #606266; background: #fff; outline: none; cursor: pointer;">
+                  <option value="">全部船型</option>
+                  <option v-for="bt in boatTypesData" :key="bt._id" :value="bt.code || bt._id">{{ bt.name }}</option>
+                </select>
+                <el-button type="primary" @click="loadOrders">查询</el-button>
+                <el-popover placement="bottom-end" :width="200" trigger="click">
+                  <template #reference>
+                    <el-button>列设置</el-button>
+                  </template>
+                  <div style="max-height: 300px; overflow-y: auto;">
+                    <div v-for="col in orderColumns" :key="col.key" style="padding: 4px 0;">
+                      <el-checkbox v-model="col.visible">{{ col.label }}</el-checkbox>
+                    </div>
+                  </div>
+                </el-popover>
+              </div>
+              <el-table :data="ordersData" v-loading="loading" style="width: 100%">
+                <el-table-column v-if="isColVisible('orderNo')" label="订单号" width="200">
+                  <template #default="{ row }">{{ row.orderNo }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('boatType')" label="船型" width="120">
+                  <template #default="{ row }">{{ row.boatType?.name || '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('boatNo')" label="船号" width="80">
+                  <template #default="{ row }">{{ row.boat?.number || '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('totalAmount')" label="订单金额" width="90">
+                  <template #default="{ row }">¥{{ Number(row.totalAmount || 0).toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('finalAmount')" label="结算金额" width="90">
+                  <template #default="{ row }">{{ row.settlement?.finalAmount != null ? '¥' + Number(row.settlement.finalAmount).toFixed(2) : '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('refundAmount')" label="退款金额" width="90">
+                  <template #default="{ row }">{{ row.settlement?.refundAmount != null ? '¥' + Number(row.settlement.refundAmount).toFixed(2) : '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('overtimeFee')" label="超时费" width="80">
+                  <template #default="{ row }">{{ row.timing?.overtimeFee ? '¥' + Number(row.timing.overtimeFee).toFixed(2) : '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('status')" label="状态" width="90">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.status === 'pending'" type="warning" size="small">未支付</el-tag>
+                    <el-tag v-else-if="row.status === 'paid'" type="primary" size="small">待核销</el-tag>
+                    <el-tag v-else-if="row.status === 'timing'" type="success" size="small">游玩中</el-tag>
+                    <el-tag v-else-if="row.status === 'completed'" type="info" size="small">已完成</el-tag>
+                    <el-tag v-else-if="row.status === 'refunded'" type="danger" size="small">已退款</el-tag>
+                    <el-tag v-else size="small">{{ row.status }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('payMethod')" label="支付方式" width="80">
+                  <template #default="{ row }">{{ row.payment?.method === 'balance' ? '余额' : row.payment?.method === 'wechat' ? '微信' : '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('startStaff')" label="发船人" width="80">
+                  <template #default="{ row }">{{ row.verification?.startStaffName || '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('endStaff')" label="收船人" width="80">
+                  <template #default="{ row }">{{ row.verification?.endStaffName || '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('startTime')" label="发船时间" width="150">
+                  <template #default="{ row }">{{ formatDate(row.timing?.startTime) }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('endTime')" label="收船时间" width="150">
+                  <template #default="{ row }">{{ formatDate(row.timing?.endTime) }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('usedMinutes')" label="游玩时长" width="90">
+                  <template #default="{ row }">{{ row.timing?.usedMinutes ? row.timing.usedMinutes + '分钟' : '-' }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('paidAt')" label="支付时间" width="150">
+                  <template #default="{ row }">{{ formatDate(row.payment?.paidAt) }}</template>
+                </el-table-column>
+                <el-table-column v-if="isColVisible('createdAt')" label="创建时间" width="150">
+                  <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+                </el-table-column>
+              </el-table>
+              <div style="margin-top: 16px; text-align: right; color: #999; font-size: 14px;">
+                共 {{ ordersTotal }} 条记录
+              </div>
+            </div>
+          </div>
+
+          <!-- 数据统计 -->
+          <div v-if="currentMenu === 'orderStats'">
+            <div class="page-header">
+              <div class="page-title">数据统计</div>
+              <el-select v-model="statsData.year" style="width: 120px" @change="loadOrderStats">
+                <el-option v-for="y in statsYearOptions" :key="y" :label="y + '年'" :value="y" />
+              </el-select>
+            </div>
+            <!-- 概览卡片 -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px;">
+              <div class="stat-card">
+                <div class="stat-label">年度营收</div>
+                <div class="stat-value" style="color: #409eff;">¥{{ statsData.annualRevenue.toFixed(2) }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">年度完成订单</div>
+                <div class="stat-value" style="color: #67c23a;">{{ statsData.annualTotal }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">当月营收</div>
+                <div class="stat-value" style="color: #e6a23c;">¥{{ currentMonthRevenue }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">当月完成订单</div>
+                <div class="stat-value" style="color: #909399;">{{ currentMonthCompleted }}</div>
+              </div>
+            </div>
+            <!-- 退款概览 -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+              <div class="stat-card">
+                <div class="stat-label">年度退款订单</div>
+                <div class="stat-value" style="color: #f56c6c;">{{ statsData.annualRefundCount }}</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-label">年度退款金额</div>
+                <div class="stat-value" style="color: #f56c6c;">¥{{ statsData.annualRefundAmount.toFixed(2) }}</div>
+              </div>
+            </div>
+            <!-- 月度明细 -->
+            <div class="data-table">
+              <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">月度明细</div>
+              <el-table :data="statsData.monthlyStats" v-loading="loading" show-summary :summary-method="statsSummary">
+                <el-table-column label="月份" width="100">
+                  <template #default="{ row }">{{ row.month }}月</template>
+                </el-table-column>
+                <el-table-column label="完成订单" width="120">
+                  <template #default="{ row }">{{ row.orderCount }}</template>
+                </el-table-column>
+                <el-table-column label="营收金额">
+                  <template #default="{ row }">¥{{ row.revenue.toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="退款订单" width="120">
+                  <template #default="{ row }">{{ row.refundCount }}</template>
+                </el-table-column>
+                <el-table-column label="退款金额">
+                  <template #default="{ row }">¥{{ row.refundAmount.toFixed(2) }}</template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
           <!-- 船型管理 -->
           <div v-if="currentMenu === 'boatTypes'">
             <div class="page-header">
@@ -234,7 +433,6 @@
             </div>
             <div class="data-table">
               <el-table :data="boatTypesData" v-loading="loading">
-                <el-table-column prop="_id" label="ID" width="180" />
                 <el-table-column label="图片" width="100">
                   <template #default="{ row }">
                     <el-image
@@ -246,15 +444,23 @@
                     />
                   </template>
                 </el-table-column>
-                <el-table-column prop="name" label="船型名称" width="150" />
-                <el-table-column prop="description" label="描述" />
-                <el-table-column prop="maxCapacity" label="最大载客" width="100" />
+                <el-table-column label="船型名称" width="150">
+                  <template #default="{ row }">{{ row.name }}</template>
+                </el-table-column>
+                <el-table-column label="描述">
+                  <template #default="{ row }">{{ row.description }}</template>
+                </el-table-column>
+                <el-table-column label="最大载客" width="100">
+                  <template #default="{ row }">{{ row.maxCapacity }}</template>
+                </el-table-column>
                 <el-table-column label="基础价格" width="100">
                   <template #default="{ row }">
-                    ¥{{ row.pricing?.basePrice }}
+                    ¥{{ Number(row.pricing?.basePrice ?? row.basePrice ?? 0).toFixed(2) }}
                   </template>
                 </el-table-column>
-                <el-table-column prop="sort" label="排序" width="80" />
+                <el-table-column label="排序" width="80">
+                  <template #default="{ row }">{{ row.sort }}</template>
+                </el-table-column>
                 <el-table-column label="状态" width="100">
                   <template #default="{ row }">
                     <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
@@ -280,11 +486,12 @@
             </div>
             <div class="data-table">
               <el-table :data="boatsData" v-loading="loading">
-                <el-table-column prop="_id" label="ID" width="180" />
-                <el-table-column prop="boatNumber" label="船号" width="150" />
+                <el-table-column label="船号" width="150">
+                  <template #default="{ row }">{{ row.boatNumber }}</template>
+                </el-table-column>
                 <el-table-column label="船型" width="150">
                   <template #default="{ row }">
-                    {{ getBoatTypeName(row.boatTypeId) }}
+                    {{ getBoatTypeName(row.boatTypeCode || row.boatTypeId) }}
                   </template>
                 </el-table-column>
                 <el-table-column label="状态" width="120">
@@ -301,7 +508,9 @@
                     </span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="lastUsedAt" label="最后使用时间" width="180" />
+                <el-table-column label="最后使用时间" width="180">
+                  <template #default="{ row }">{{ row.lastUsedAt }}</template>
+                </el-table-column>
                 <el-table-column label="操作" width="180" fixed="right">
                   <template #default="{ row }">
                     <el-button size="small" @click="openDialog('boats', 'edit', row)">编辑</el-button>
@@ -320,10 +529,15 @@
             </div>
             <div class="data-table">
               <el-table :data="staffData" v-loading="loading">
-                <el-table-column prop="_id" label="ID" width="180" />
-                <el-table-column prop="username" label="用户名" width="150" />
-                <el-table-column prop="realName" label="真实姓名" width="150" />
-                <el-table-column prop="phone" label="手机号" width="150" />
+                <el-table-column label="用户名" width="150">
+                  <template #default="{ row }">{{ row.username }}</template>
+                </el-table-column>
+                <el-table-column label="真实姓名" width="150">
+                  <template #default="{ row }">{{ row.realName }}</template>
+                </el-table-column>
+                <el-table-column label="手机号" width="150">
+                  <template #default="{ row }">{{ row.phone }}</template>
+                </el-table-column>
                 <el-table-column label="角色" width="120">
                   <template #default="{ row }">
                     <el-tag v-if="row.role === 'admin'" type="danger">管理员</el-tag>
@@ -337,7 +551,7 @@
                     </span>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" fixed="right">
+                <el-table-column label="操作" width="280" fixed="right">
                   <template #default="{ row }">
                     <el-button size="small" @click="openDialog('staff', 'edit', row)">编辑</el-button>
                     <el-button size="small" type="warning" @click="openDialog('staff', 'password', row)">改密码</el-button>
@@ -356,7 +570,6 @@
             </div>
             <div class="data-table">
               <el-table :data="bannersData" v-loading="loading">
-                <el-table-column prop="_id" label="ID" width="180" />
                 <el-table-column label="图片" width="120">
                   <template #default="{ row }">
                     <el-image
@@ -368,7 +581,9 @@
                     />
                   </template>
                 </el-table-column>
-                <el-table-column prop="title" label="标题" width="200" />
+                <el-table-column label="标题" width="200">
+                  <template #default="{ row }">{{ row.title }}</template>
+                </el-table-column>
                 <el-table-column label="链接类型" width="120">
                   <template #default="{ row }">
                     <el-tag v-if="row.linkType === 'none'">无链接</el-tag>
@@ -376,8 +591,12 @@
                     <el-tag v-else type="warning">外部链接</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="linkUrl" label="链接地址" show-overflow-tooltip />
-                <el-table-column prop="sort" label="排序" width="80" />
+                <el-table-column label="链接地址" show-overflow-tooltip>
+                  <template #default="{ row }">{{ row.linkUrl }}</template>
+                </el-table-column>
+                <el-table-column label="排序" width="80">
+                  <template #default="{ row }">{{ row.sort }}</template>
+                </el-table-column>
                 <el-table-column label="状态" width="100">
                   <template #default="{ row }">
                     <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
@@ -403,8 +622,9 @@
             </div>
             <div class="data-table">
               <el-table :data="announcementsData" v-loading="loading">
-                <el-table-column prop="_id" label="ID" width="180" />
-                <el-table-column prop="title" label="标题" width="200" />
+                <el-table-column label="标题" width="200">
+                  <template #default="{ row }">{{ row.title }}</template>
+                </el-table-column>
                 <el-table-column label="类型" width="100">
                   <template #default="{ row }">
                     <el-tag v-if="row.type === 'warning'" type="warning">警告</el-tag>
@@ -418,9 +638,15 @@
                     <el-tag v-else type="info">否</el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="startDate" label="开始时间" width="180" />
-                <el-table-column prop="endDate" label="结束时间" width="180" />
-                <el-table-column prop="sort" label="排序" width="80" />
+                <el-table-column label="开始时间" width="180">
+                  <template #default="{ row }">{{ row.startDate }}</template>
+                </el-table-column>
+                <el-table-column label="结束时间" width="180">
+                  <template #default="{ row }">{{ row.endDate }}</template>
+                </el-table-column>
+                <el-table-column label="排序" width="80">
+                  <template #default="{ row }">{{ row.sort }}</template>
+                </el-table-column>
                 <el-table-column label="状态" width="100">
                   <template #default="{ row }">
                     <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
@@ -435,6 +661,149 @@
                   </template>
                 </el-table-column>
               </el-table>
+            </div>
+          </div>
+
+          <!-- 价格设置 -->
+          <div v-if="currentMenu === 'pricingConfigs'">
+            <div class="page-header">
+              <div class="page-title">价格设置</div>
+              <el-button type="primary" @click="openDialog('pricingConfigs', 'add')">新增价格方案</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="pricingData" v-loading="loading">
+                <el-table-column label="方案名称" width="180">
+                  <template #default="{ row }">{{ row.name }}</template>
+                </el-table-column>
+                <el-table-column label="关联船型" width="150">
+                  <template #default="{ row }">{{ getBoatTypeName(row.boatTypeCode) }}</template>
+                </el-table-column>
+                <el-table-column label="基础票价" width="100">
+                  <template #default="{ row }">¥{{ Number(row.basePrice || 0).toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="押金" width="100">
+                  <template #default="{ row }">¥{{ Number(row.depositAmount || 0).toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="包含时长" width="100">
+                  <template #default="{ row }">{{ row.includedMinutes }}分钟</template>
+                </el-table-column>
+                <el-table-column label="超时费率" width="120">
+                  <template #default="{ row }">¥{{ Number(row.overtimeRate || 0).toFixed(2) }}/分钟</template>
+                </el-table-column>
+                <el-table-column label="封顶金额" width="100">
+                  <template #default="{ row }">{{ row.capAmount ? '¥' + Number(row.capAmount).toFixed(2) : '不封顶' }}</template>
+                </el-table-column>
+                <el-table-column label="默认" width="80">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.isDefault" type="success" size="small">默认</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态" width="80">
+                  <template #default="{ row }">
+                    <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="openDialog('pricingConfigs', 'edit', row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteItem('pricingConfigs', row._id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <!-- 充值套餐管理 -->
+          <div v-if="currentMenu === 'recharge_plans'">
+            <div class="page-header">
+              <div class="page-title">充值套餐管理</div>
+              <el-button type="primary" @click="openDialog('recharge_plans', 'add')">新增套餐</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="rechargePlansData" v-loading="loading">
+                <el-table-column label="方案名称" width="150">
+                  <template #default="{ row }">{{ row.name }}</template>
+                </el-table-column>
+                <el-table-column label="充值金额" width="120">
+                  <template #default="{ row }">¥{{ Number(row.amount || 0).toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="赠送金额" width="120">
+                  <template #default="{ row }">¥{{ Number(row.giftAmount || 0).toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="到账总额" width="120">
+                  <template #default="{ row }">¥{{ Number(row.totalAmount || 0).toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="标签" width="100">
+                  <template #default="{ row }">
+                    <el-tag v-if="row.tag" type="danger" size="small">{{ row.tag }}</el-tag>
+                    <span v-else>-</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="排序" width="80">
+                  <template #default="{ row }">{{ row.sort }}</template>
+                </el-table-column>
+                <el-table-column label="状态" width="100">
+                  <template #default="{ row }">
+                    <span :class="row.enabled ? 'status-badge status-enabled' : 'status-badge status-disabled'">
+                      {{ row.enabled ? '启用' : '禁用' }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="openDialog('recharge_plans', 'edit', row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteItem('recharge_plans', row._id)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <!-- 系统设置 -->
+          <div v-if="currentMenu === 'settings'">
+            <div class="page-header">
+              <div class="page-title">系统设置</div>
+            </div>
+            <div class="data-table">
+              <el-form :model="settingsForm" label-width="140px" style="max-width: 700px;">
+                <el-form-item label="景区名称">
+                  <el-input v-model="settingsForm.scenicName" placeholder="请输入景区名称" />
+                </el-form-item>
+                <el-form-item label="联系电话">
+                  <el-input v-model="settingsForm.contactPhone" placeholder="请输入联系电话" />
+                </el-form-item>
+                <el-form-item label="营业开始时间">
+                  <el-time-select v-model="settingsForm.openTime" start="06:00" step="00:30" end="12:00" placeholder="开始时间" />
+                </el-form-item>
+                <el-form-item label="营业结束时间">
+                  <el-time-select v-model="settingsForm.closeTime" start="15:00" step="00:30" end="22:00" placeholder="结束时间" />
+                </el-form-item>
+                <el-form-item label="储值功能">
+                  <el-switch v-model="settingsForm.rechargeEnabled" active-text="开启" inactive-text="关闭" />
+                  <div style="color: #999; font-size: 12px; margin-top: 4px;">审核期间请关闭</div>
+                </el-form-item>
+                <el-form-item label="自动退款">
+                  <el-switch v-model="settingsForm.autoRefundEnabled" active-text="开启" inactive-text="关闭" />
+                </el-form-item>
+                <el-form-item label="自动退款天数" v-if="settingsForm.autoRefundEnabled">
+                  <el-input-number v-model="settingsForm.autoRefundDays" :min="1" :max="30" />
+                  <span style="margin-left: 8px; color: #999; font-size: 12px;">超期未核销订单自动退款</span>
+                </el-form-item>
+                <el-form-item label="退款规则">
+                  <el-input v-model="settingsForm.refundRules" type="textarea" :rows="5" placeholder="请输入退款规则说明" />
+                </el-form-item>
+                <el-form-item label="安全须知">
+                  <el-input v-model="settingsForm.safetyNotice" type="textarea" :rows="5" placeholder="请输入安全须知" />
+                </el-form-item>
+                <el-form-item label="关于我们">
+                  <el-input v-model="settingsForm.aboutUs" type="textarea" :rows="5" placeholder="请输入景区介绍" />
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" :loading="settingsSaving" @click="saveSettings">保存设置</el-button>
+                </el-form-item>
+              </el-form>
             </div>
           </div>
         </div>
@@ -502,12 +871,12 @@
           <el-input v-model="dialogForm.boatNumber" placeholder="例如: E-001" />
         </el-form-item>
         <el-form-item label="船型">
-          <el-select v-model="dialogForm.boatTypeId" placeholder="请选择船型">
+          <el-select v-model="dialogForm.boatTypeCode" placeholder="请选择船型">
             <el-option
               v-for="type in boatTypesData"
               :key="type._id"
               :label="type.name"
-              :value="type._id"
+              :value="type.code || type._id"
             />
           </el-select>
         </el-form-item>
@@ -640,6 +1009,72 @@
         </el-form-item>
       </el-form>
 
+      <!-- 价格设置表单 -->
+      <el-form v-if="dialogType === 'pricingConfigs'" :model="dialogForm" label-width="120px">
+        <el-form-item label="方案名称">
+          <el-input v-model="dialogForm.name" placeholder="如：双人船-平日价" />
+        </el-form-item>
+        <el-form-item label="关联船型">
+          <el-select v-model="dialogForm.boatTypeCode" placeholder="请选择船型">
+            <el-option
+              v-for="type in boatTypesData"
+              :key="type._id"
+              :label="type.name"
+              :value="type.code || type._id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="基础票价(元)">
+          <el-input-number v-model="dialogForm.basePrice" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="押金(元)">
+          <el-input-number v-model="dialogForm.depositAmount" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="包含时长(分钟)">
+          <el-input-number v-model="dialogForm.includedMinutes" :min="1" />
+        </el-form-item>
+        <el-form-item label="超时费率(元/分)">
+          <el-input-number v-model="dialogForm.overtimeRate" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="封顶金额(元)">
+          <el-input-number v-model="dialogForm.capAmount" :min="0" :precision="2" />
+          <div style="color: #999; font-size: 12px; margin-top: 4px;">设为0表示不封顶</div>
+        </el-form-item>
+        <el-form-item label="是否默认">
+          <el-switch v-model="dialogForm.isDefault" />
+          <div style="color: #999; font-size: 12px; margin-top: 4px;">每个船型只能有一个默认价格</div>
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="dialogForm.enabled" />
+        </el-form-item>
+      </el-form>
+
+      <!-- 充值套餐表单 -->
+      <el-form v-if="dialogType === 'recharge_plans'" :model="dialogForm" label-width="120px">
+        <el-form-item label="方案名称">
+          <el-input v-model="dialogForm.name" placeholder="如：充100送20" />
+        </el-form-item>
+        <el-form-item label="充值金额(元)">
+          <el-input-number v-model="dialogForm.amount" :min="1" :precision="2" />
+        </el-form-item>
+        <el-form-item label="赠送金额(元)">
+          <el-input-number v-model="dialogForm.giftAmount" :min="0" :precision="2" />
+        </el-form-item>
+        <el-form-item label="到账总额(元)">
+          <el-input-number v-model="dialogForm.totalAmount" :min="1" :precision="2" />
+          <div style="color: #999; font-size: 12px; margin-top: 4px;">应等于充值金额+赠送金额</div>
+        </el-form-item>
+        <el-form-item label="标签">
+          <el-input v-model="dialogForm.tag" placeholder="如：热门、超值（留空则不显示）" />
+        </el-form-item>
+        <el-form-item label="排序">
+          <el-input-number v-model="dialogForm.sort" :min="0" />
+        </el-form-item>
+        <el-form-item label="是否启用">
+          <el-switch v-model="dialogForm.enabled" />
+        </el-form-item>
+      </el-form>
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleSave" :loading="saveLoading">保存</el-button>
@@ -647,14 +1082,14 @@
     </el-dialog>
   </div>
 
-  <!-- Vue 3 -->
-  <script src="https://cdn.staticfile.net/vue/3.3.11/vue.global.min.js"></script>
-  <!-- Element Plus -->
-<script src="https://cdn.staticfile.net/element-plus/2.4.4/index.full.min.js"></script>
-  <!-- Element Plus Icon -->
-<script src="https://cdn.staticfile.net/element-plus-icons-vue/2.1.0/index.iife.min.js"></script>
-  <!-- Cloudbase JS SDK -->
-<script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/2.2.0/cloudbase.full.js"></script>
+  <!-- Vue 3 (本地) -->
+  <script src="lib/vue.min.js"></script>
+  <!-- Element Plus (本地) -->
+  <script src="lib/element-plus.min.js"></script>
+  <!-- Element Plus 中文语言包 -->
+  <script src="lib/element-plus-locale-zh-cn.min.js"></script>
+  <!-- Cloudbase JS SDK (本地) -->
+  <script src="lib/cloudbase.min.js?v=4"></script>
 
   <script>
     const { createApp } = Vue;
@@ -677,20 +1112,44 @@
 
           // 菜单
           menus: [
+            { key: 'orders', label: '订单管理', icon: '📋' },
+            { key: 'orderStats', label: '数据统计', icon: '📊' },
             { key: 'boatTypes', label: '船型管理', icon: '🚤' },
             { key: 'boats', label: '船只管理', icon: '⛵' },
+            { key: 'pricingConfigs', label: '价格设置', icon: '💰' },
+            { key: 'recharge_plans', label: '充值套餐', icon: '🎁' },
             { key: 'staff', label: '员工管理', icon: '👥' },
             { key: 'banners', label: '轮播图管理', icon: '🖼️' },
-            { key: 'announcements', label: '公告管理', icon: '📢' }
+            { key: 'announcements', label: '公告管理', icon: '📢' },
+            { key: 'settings', label: '系统设置', icon: '⚙️' }
           ],
-          currentMenu: 'boatTypes',
+          currentMenu: 'orders',
 
           // 数据
+          ordersData: [],
+          ordersTotal: 0,
+          orderFilter: {
+            dateRange: [],
+            status: '',
+            boatTypeCode: ''
+          },
+          statsData: {
+            year: new Date().getFullYear(),
+            annualTotal: 0,
+            annualRevenue: 0,
+            annualRefundCount: 0,
+            annualRefundAmount: 0,
+            monthlyStats: []
+          },
           boatTypesData: [],
           boatsData: [],
           staffData: [],
           bannersData: [],
           announcementsData: [],
+          pricingData: [],
+          rechargePlansData: [],
+          settingsForm: {},
+          settingsSaving: false,
 
           // 对话框
           dialogVisible: false,
@@ -709,24 +1168,61 @@
           auth: null,
 
           // 图片上传临时文件
-          tempImageFile: null
+          tempImageFile: null,
+
+          // 订单表格列显示控制
+          orderColumns: [
+            { key: 'orderNo', label: '订单号', visible: true },
+            { key: 'boatType', label: '船型', visible: true },
+            { key: 'boatNo', label: '船号', visible: true },
+            { key: 'totalAmount', label: '订单金额', visible: true },
+            { key: 'finalAmount', label: '结算金额', visible: false },
+            { key: 'refundAmount', label: '退款金额', visible: false },
+            { key: 'overtimeFee', label: '超时费', visible: false },
+            { key: 'status', label: '状态', visible: true },
+            { key: 'payMethod', label: '支付方式', visible: false },
+            { key: 'startStaff', label: '发船人', visible: true },
+            { key: 'endStaff', label: '收船人', visible: true },
+            { key: 'startTime', label: '发船时间', visible: true },
+            { key: 'endTime', label: '收船时间', visible: false },
+            { key: 'usedMinutes', label: '游玩时长', visible: false },
+            { key: 'paidAt', label: '支付时间', visible: false },
+            { key: 'createdAt', label: '创建时间', visible: true }
+          ]
         };
       },
+      computed: {
+        statsYearOptions() {
+          const currentYear = new Date().getFullYear();
+          return [currentYear, currentYear - 1, currentYear - 2];
+        },
+        currentMonthCompleted() {
+          const m = new Date().getMonth() + 1;
+          const item = this.statsData.monthlyStats.find(s => s.month === m);
+          return item ? item.orderCount : 0;
+        },
+        currentMonthRevenue() {
+          const m = new Date().getMonth() + 1;
+          const item = this.statsData.monthlyStats.find(s => s.month === m);
+          return item ? item.revenue.toFixed(2) : '0.00';
+        }
+      },
       async mounted() {
-        // 初始化云开发
-        this.initCloudbase();
+        // 初始化云开发（含匿名登录）
+        await this.initCloudbase();
 
         // 检查登录状态
         const savedUser = localStorage.getItem('adminUser');
         if (savedUser) {
           this.currentUser = JSON.parse(savedUser);
           this.isLoggedIn = true;
-          await this.loadData();
+          this.initOrderFilter();
+          await this.loadOrders();
         }
       },
       methods: {
         // 初始化云开发
-        initCloudbase() {
+        async initCloudbase() {
           // 检查 CloudBase SDK 是否加载成功
           if (typeof cloudbase === 'undefined') {
             console.error('CloudBase SDK 加载失败，请检查网络连接');
@@ -742,6 +1238,17 @@
             this.auth = this.app.auth({
               persistence: 'local'
             });
+
+            // Web端必须先进行匿名登录才能调用云函数和访问数据库
+            const loginState = await this.auth.getLoginState();
+            if (!loginState) {
+              const { error } = await this.auth.signInAnonymously();
+              if (error) {
+                throw new Error('匿名登录失败: ' + error.message);
+              }
+              console.log('匿名登录成功');
+            }
+
             console.log('CloudBase 初始化成功，环境ID:', ENV_ID);
           } catch (error) {
             console.error('CloudBase 初始化失败:', error);
@@ -788,7 +1295,8 @@
               localStorage.setItem('adminUser', JSON.stringify(staffInfo));
 
               ElMessage.success('登录成功');
-              await this.loadData();
+              this.initOrderFilter();
+              await this.loadOrders();
             } else {
               ElMessage.error(res.result.message || '登录失败');
             }
@@ -817,7 +1325,15 @@
         // 切换菜单
         async switchMenu(key) {
           this.currentMenu = key;
-          await this.loadData();
+          if (key === 'orders') {
+            await this.loadOrders();
+          } else if (key === 'orderStats') {
+            await this.loadOrderStats();
+          } else if (key === 'settings') {
+            await this.loadSettings();
+          } else {
+            await this.loadData();
+          }
         },
 
         // 获取当前菜单标签
@@ -826,23 +1342,189 @@
           return menu ? menu.label : '';
         },
 
+        // 调用 adminApi 云函数（统一数据接口）
+        async callAdminApi(params) {
+          const res = await this.app.callFunction({
+            name: 'adminApi',
+            data: {
+              ...params,
+              staffId: this.currentUser._id
+            }
+          });
+          return res.result;
+        },
+
+        // 初始化订单筛选条件（默认当月）
+        initOrderFilter() {
+          const now = new Date();
+          const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+          this.orderFilter.dateRange = [firstDay, today];
+          this.orderFilter.status = '';
+          this.orderFilter.boatTypeCode = '';
+        },
+
+        // 加载订单数据
+        async loadOrders() {
+          this.loading = true;
+          try {
+            // 确保船型数据已加载（用于船型筛选下拉框）
+            if (this.boatTypesData.length === 0) {
+              const btRes = await this.callAdminApi({ action: 'query', collection: 'boatTypes' });
+              if (btRes.code === 200) this.boatTypesData = btRes.data;
+            }
+
+            const params = { action: 'queryOrders', data: {} };
+            if (this.orderFilter.dateRange && this.orderFilter.dateRange.length === 2) {
+              params.data.startDate = this.orderFilter.dateRange[0] + 'T00:00:00+08:00';
+              params.data.endDate = this.orderFilter.dateRange[1] + 'T23:59:59+08:00';
+            }
+            if (this.orderFilter.status) {
+              params.data.status = this.orderFilter.status;
+            }
+            if (this.orderFilter.boatTypeCode) {
+              params.data.boatTypeCode = this.orderFilter.boatTypeCode;
+            }
+            const res = await this.callAdminApi(params);
+            if (res.code === 200) {
+              this.ordersData = res.data;
+              this.ordersTotal = res.total;
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('加载订单失败:', error);
+            ElMessage.error('加载订单失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // 加载订单统计
+        async loadOrderStats() {
+          this.loading = true;
+          try {
+            const res = await this.callAdminApi({
+              action: 'orderStats',
+              data: { year: this.statsData.year }
+            });
+            if (res.code === 200) {
+              this.statsData.annualTotal = res.data.annualTotal;
+              this.statsData.annualRevenue = res.data.annualRevenue;
+              this.statsData.annualRefundCount = res.data.annualRefundCount;
+              this.statsData.annualRefundAmount = res.data.annualRefundAmount;
+              this.statsData.monthlyStats = res.data.monthlyStats;
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('加载统计失败:', error);
+            ElMessage.error('加载统计失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // 统计表格合计行
+        statsSummary({ columns, data }) {
+          const sums = [];
+          columns.forEach((col, index) => {
+            if (index === 0) { sums[index] = '合计'; return; }
+            if (index === 1) { sums[index] = data.reduce((s, r) => s + r.orderCount, 0); return; }
+            if (index === 2) { sums[index] = '¥' + data.reduce((s, r) => s + r.revenue, 0).toFixed(2); return; }
+            if (index === 3) { sums[index] = data.reduce((s, r) => s + r.refundCount, 0); return; }
+            if (index === 4) { sums[index] = '¥' + data.reduce((s, r) => s + r.refundAmount, 0).toFixed(2); return; }
+          });
+          return sums;
+        },
+
+        // 加载系统设置
+        async loadSettings() {
+          this.loading = true;
+          try {
+            const res = await this.callAdminApi({
+              action: 'query',
+              collection: 'app_settings',
+              data: { where: { _id: 'global_settings' }, limit: 1 }
+            });
+            if (res.code === 200 && res.data.length > 0) {
+              this.settingsForm = res.data[0];
+            } else {
+              this.settingsForm = {
+                _id: 'global_settings',
+                scenicName: '', contactPhone: '', openTime: '08:00', closeTime: '18:00',
+                rechargeEnabled: false, autoRefundEnabled: true, autoRefundDays: 7,
+                refundRules: '', safetyNotice: '', aboutUs: ''
+              };
+            }
+          } catch (error) {
+            console.error('加载设置失败:', error);
+            ElMessage.error('加载设置失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // 保存系统设置
+        async saveSettings() {
+          this.settingsSaving = true;
+          try {
+            const data = { ...this.settingsForm };
+            const docId = data._id;
+            delete data._id;
+            delete data.createdAt;
+            delete data.updatedAt;
+
+            const res = await this.callAdminApi({
+              action: 'update',
+              collection: 'app_settings',
+              docId: docId,
+              data: data
+            });
+            if (res.code === 200) {
+              ElMessage.success('设置保存成功');
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('保存设置失败:', error);
+            ElMessage.error('保存设置失败: ' + error.message);
+          }
+          this.settingsSaving = false;
+        },
+
+        // 格式化日期
+        formatDate(dateVal) {
+          if (!dateVal) return '-';
+          const d = new Date(dateVal);
+          if (isNaN(d.getTime())) return '-';
+          const pad = n => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
+
         // 加载数据
         async loadData() {
           this.loading = true;
           try {
             const collection = this.currentMenu;
-            const res = await this.db.collection(collection).get();
+            const res = await this.callAdminApi({
+              action: 'query',
+              collection: collection
+            });
+
+            if (res.code !== 200) {
+              throw new Error(res.message);
+            }
+
+            console.log('📦 loadData 返回数据:', collection, JSON.stringify(res.data?.slice(0, 2)));
 
             switch (collection) {
               case 'boatTypes':
                 this.boatTypesData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+                await this.resolveCloudUrls(this.boatTypesData);
                 break;
               case 'boats':
                 this.boatsData = res.data;
-                // 加载船型数据以便显示
                 if (this.boatTypesData.length === 0) {
-                  const boatTypesRes = await this.db.collection('boatTypes').get();
-                  this.boatTypesData = boatTypesRes.data;
+                  const btRes = await this.callAdminApi({ action: 'query', collection: 'boatTypes' });
+                  if (btRes.code === 200) this.boatTypesData = btRes.data;
                 }
                 break;
               case 'staff':
@@ -850,14 +1532,26 @@
                 break;
               case 'banners':
                 this.bannersData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+                await this.resolveCloudUrls(this.bannersData);
                 break;
               case 'announcements':
                 this.announcementsData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
                 break;
+              case 'pricingConfigs':
+                this.pricingData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+                // 同时加载船型数据用于显示名称
+                if (this.boatTypesData.length === 0) {
+                  const btRes = await this.callAdminApi({ action: 'query', collection: 'boatTypes' });
+                  if (btRes.code === 200) this.boatTypesData = btRes.data;
+                }
+                break;
+              case 'recharge_plans':
+                this.rechargePlansData = res.data.sort((a, b) => (a.sort || 0) - (b.sort || 0));
+                break;
             }
           } catch (error) {
             console.error('加载数据失败:', error);
-            ElMessage.error('加载数据失败');
+            ElMessage.error('加载数据失败: ' + error.message);
           }
           this.loading = false;
         },
@@ -905,7 +1599,7 @@
             },
             boats: {
               boatNumber: '',
-              boatTypeId: '',
+              boatTypeCode: '',
               status: 'idle',
               enabled: true
             },
@@ -932,6 +1626,26 @@
               showOnHome: true,
               startDate: new Date(),
               endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              sort: 0,
+              enabled: true
+            },
+            pricingConfigs: {
+              name: '',
+              boatTypeCode: '',
+              basePrice: 0,
+              depositAmount: 0,
+              includedMinutes: 60,
+              overtimeRate: 0,
+              capAmount: 0,
+              isDefault: false,
+              enabled: true
+            },
+            recharge_plans: {
+              name: '',
+              amount: 0,
+              giftAmount: 0,
+              totalAmount: 0,
+              tag: '',
               sort: 0,
               enabled: true
             }
@@ -1036,17 +1750,15 @@
               if (data.endDate) data.endDate = new Date(data.endDate);
             }
 
-            // 添加时间戳
-            if (this.dialogMode === 'add') {
-              data.createdAt = new Date();
-            }
-            data.updatedAt = new Date();
+            // 移除时间戳（由云函数自动添加）
+            delete data.createdAt;
+            delete data.updatedAt;
 
             if (this.dialogMode === 'add') {
               // 新增
               delete data._id;
 
-              // 如果是员工，调用云函数进行密码加密
+              // 如果是员工，调用专用云函数
               if (collection === 'staff') {
                 const res = await this.app.callFunction({
                   name: 'createStaff',
@@ -1056,7 +1768,12 @@
                   throw new Error(res.result.message);
                 }
               } else {
-                await this.db.collection(collection).add(data);
+                const res = await this.callAdminApi({
+                  action: 'add',
+                  collection: collection,
+                  data: data
+                });
+                if (res.code !== 200) throw new Error(res.message);
               }
 
               ElMessage.success('新增成功');
@@ -1070,7 +1787,13 @@
                 delete data.password;
               }
 
-              await this.db.collection(collection).doc(id).update(data);
+              const res = await this.callAdminApi({
+                action: 'update',
+                collection: collection,
+                docId: id,
+                data: data
+              });
+              if (res.code !== 200) throw new Error(res.message);
               ElMessage.success('保存成功');
             }
 
@@ -1098,7 +1821,7 @@
               ElMessage.error('请输入船号');
               return false;
             }
-            if (!form.boatTypeId) {
+            if (!form.boatTypeCode) {
               ElMessage.error('请选择船型');
               return false;
             }
@@ -1129,6 +1852,24 @@
               ElMessage.error('请输入内容');
               return false;
             }
+          } else if (type === 'pricingConfigs') {
+            if (!form.name) {
+              ElMessage.error('请输入方案名称');
+              return false;
+            }
+            if (!form.boatTypeCode) {
+              ElMessage.error('请选择关联船型');
+              return false;
+            }
+          } else if (type === 'recharge_plans') {
+            if (!form.name) {
+              ElMessage.error('请输入方案名称');
+              return false;
+            }
+            if (!form.amount || form.amount <= 0) {
+              ElMessage.error('请输入充值金额');
+              return false;
+            }
           }
 
           return true;
@@ -1142,23 +1883,62 @@
             type: 'warning'
           }).then(async () => {
             try {
-              await this.db.collection(collection).doc(id).remove();
+              const res = await this.callAdminApi({
+                action: 'remove',
+                collection: collection,
+                docId: id
+              });
+              if (res.code !== 200) throw new Error(res.message);
               ElMessage.success('删除成功');
               await this.loadData();
             } catch (error) {
               console.error('删除失败:', error);
-              ElMessage.error('删除失败');
+              ElMessage.error('删除失败: ' + error.message);
             }
           }).catch(() => {});
         },
 
         // 获取船型名称
-        getBoatTypeName(typeId) {
-          const type = this.boatTypesData.find(t => t._id === typeId);
-          return type ? type.name : '-';
+        getBoatTypeName(typeRef) {
+          if (!typeRef) return '-';
+          // 尝试多种匹配方式：_id、code、boatTypeCode
+          const type = this.boatTypesData.find(t =>
+            t._id === typeRef || t.code === typeRef || t.typeCode === typeRef
+          );
+          return type ? type.name : typeRef;
+        },
+
+        // 判断订单列是否可见
+        isColVisible(key) {
+          const col = this.orderColumns.find(c => c.key === key);
+          return col ? col.visible : true;
+        },
+
+        // 将 cloud:// 地址转换为 HTTP 临时链接
+        async resolveCloudUrls(dataList, field = 'imageUrl') {
+          const cloudFileIds = dataList
+            .filter(item => item[field] && item[field].startsWith('cloud://'))
+            .map(item => item[field]);
+
+          if (cloudFileIds.length === 0) return;
+
+          try {
+            const res = await this.app.getTempFileURL({ fileList: cloudFileIds });
+            const urlMap = {};
+            res.fileList.forEach(f => {
+              if (f.tempFileURL) urlMap[f.fileID] = f.tempFileURL;
+            });
+            dataList.forEach(item => {
+              if (item[field] && urlMap[item[field]]) {
+                item[field] = urlMap[item[field]];
+              }
+            });
+          } catch (e) {
+            console.error('转换云存储URL失败:', e);
+          }
         }
       }
-    }).use(ElementPlus).mount('#app');
+    }).use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#app');
   </script>
 </body>
 </html>
