@@ -97,9 +97,15 @@ Page({
     if (this.data.balance < this.data.order.totalAmount) {
       wx.showModal({
         title: '余额不足',
-        content: `当前余额：¥${this.data.balance.toFixed(2)}\n需要支付：¥${this.data.order.totalAmount.toFixed(2)}`,
-        showCancel: false,
-        confirmText: '知道了'
+        content: `当前余额：¥${this.data.balance.toFixed(2)}\n需要支付：¥${this.data.order.totalAmount.toFixed(2)}\n是否前往充值？`,
+        confirmText: '去充值',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateTo({
+              url: '/pages/recharge/recharge'
+            })
+          }
+        }
       })
       return
     }

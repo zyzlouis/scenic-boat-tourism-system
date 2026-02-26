@@ -1,0 +1,96 @@
+/* pages/recharge-logs/recharge-logs.wxss */
+.logs-container {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.loading-container,
+.empty-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 100rpx 0;
+}
+
+/* 记录列表 */
+.logs-list {
+  padding: 20rpx 30rpx;
+}
+
+.log-item {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.log-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20rpx;
+}
+
+.log-type-container {
+  flex: 1;
+  margin-right: 20rpx;
+}
+
+.log-desc {
+  display: block;
+  font-size: 28rpx;
+  color: #333333;
+  margin-top: 10rpx;
+}
+
+.log-amount {
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.log-amount.positive {
+  color: #07c160;
+}
+
+.log-amount.negative {
+  color: #ff6b6b;
+}
+
+.log-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.log-time {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.log-balance {
+  font-size: 24rpx;
+  color: #666666;
+}
+
+/* 加载更多 */
+.load-more {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30rpx 0;
+}
+
+.load-more-text {
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.no-more {
+  text-align: center;
+  padding: 30rpx 0;
+  font-size: 24rpx;
+  color: #999999;
+}

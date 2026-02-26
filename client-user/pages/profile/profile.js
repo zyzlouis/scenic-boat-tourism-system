@@ -132,9 +132,8 @@ Page({
       })
       return
     }
-    wx.showToast({
-      title: '充值功能开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: '/pages/recharge/recharge'
     })
   },
 
@@ -154,9 +153,8 @@ Page({
       })
       return
     }
-    wx.showToast({
-      title: '充值记录功能开发中',
-      icon: 'none'
+    wx.navigateTo({
+      url: '/pages/recharge-logs/recharge-logs'
     })
   },
 
