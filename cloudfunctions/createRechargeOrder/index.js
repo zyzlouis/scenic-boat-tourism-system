@@ -46,12 +46,16 @@ exports.main = async (event, context) => {
     // 3. 生成充值订单号
     const orderNo = generateOrderNo()
 
-    // 4. 创建充值订单（status: pending）
+    // 5. 生成商户订单号（用于微信支付）
+    const outTradeNo = `RC${Date.now()}${Math.floor(Math.random() * 1000)}`
+
+    // 6. 创建充值订单（status: pending），记录 outTradeNo
     const now = new Date()
     const orderData = {
       _openid: openid,
       userId: userId,
       orderNo: orderNo,
+      outTradeNo: outTradeNo,
       planName: plan.name,
       amount: plan.amount,
       giftAmount: plan.giftAmount,
@@ -70,26 +74,51 @@ exports.main = async (event, context) => {
       data: orderData
     })
 
-    // 5. 调用微信支付统一下单
-    // TODO: 实际生产环境需要调用微信支付API
-    // 这里返回模拟的支付参数
+    // 7. 调用微信支付统一下单
+    const body = `储值充值-${plan.name}`
+    const paymentResult = await cloud.cloudPay.unifiedOrder({
+      body: body,
+      outTradeNo: outTradeNo,
+      spbillCreateIp: '127.0.0.1',
+      subMchId: '1106454761',
+      totalFee: Math.round(plan.amount * 100),  // 实际支付金额（分），只收充值金额，赠送部分不收费
+      envId: 'cc-5gos3ctb46510316',
+      functionName: 'rechargeCallback'           // 支付回调云函数
+    })
 
-    const paymentParams = {
-      timeStamp: String(Math.floor(Date.now() / 1000)),
-      nonceStr: Math.random().toString(36).substring(2, 15),
-      package: `prepay_id=mock_prepay_id_${orderId}`,
-      signType: 'MD5',
-      paySign: 'mock_pay_sign',
-      orderId: orderId,
-      orderNo: orderNo
-    }
+    console.log('✅ 充值统一下单结果:', paymentResult)
 
-    return {
-      success: true,
-      message: '充值订单创建成功',
-      orderId: orderId,
-      orderNo: orderNo,
-      paymentParams: paymentParams
+    // 8. 检查统一下单结果
+    if (paymentResult.returnCode === 'SUCCESS' && paymentResult.resultCode === 'SUCCESS') {
+      // 更新充值订单，记录预支付ID
+      await db.collection('recharge_orders').doc(orderId).update({
+        data: {
+          prepayId: paymentResult.prepayId,
+          updatedAt: new Date()
+        }
+      })
+
+      return {
+        success: true,
+        message: '充值订单创建成功',
+        orderId: orderId,
+        orderNo: orderNo,
+        payment: paymentResult.payment  // 前端调起支付所需的参数
+      }
+    } else {
+      // 统一下单失败，更新订单状态
+      await db.collection('recharge_orders').doc(orderId).update({
+        data: {
+          status: 'fail',
+          remark: paymentResult.returnMsg || paymentResult.errCodeDes || '统一下单失败',
+          updatedAt: new Date()
+        }
+      })
+
+      return {
+        success: false,
+        message: paymentResult.returnMsg || paymentResult.errCodeDes || '创建支付订单失败'
+      }
     }
   } catch (error) {
     console.error('创建充值订单失败:', error)

@@ -88,12 +88,12 @@ Page({
     }
 
     wx.showLoading({
-      title: '处理中...',
+      title: '正在调起支付...',
       mask: true
     })
 
     try {
-      // 创建充值订单
+      // 1. 创建充值订单并获取支付参数
       const res = await wx.cloud.callFunction({
         name: 'createRechargeOrder',
         data: {
@@ -103,74 +103,55 @@ Page({
 
       wx.hideLoading()
 
-      if (res.result.success) {
-        // 模拟支付成功（实际项目需要调起微信支付）
-        // TODO: 调起微信支付
-        // wx.requestPayment({
-        //   ...res.result.paymentParams,
-        //   success: () => {
-        //     this.handlePaymentSuccess(res.result.orderNo)
-        //   }
-        // })
-
-        // 开发阶段直接模拟支付成功
-        this.simulatePaymentSuccess(res.result.orderNo, res.result.orderId)
-      } else {
+      if (!res.result.success) {
         wx.showToast({
           title: res.result.message || '创建订单失败',
           icon: 'none'
         })
+        return
       }
+
+      // 2. 获取支付参数
+      const payment = res.result.payment
+
+      // 3. 调起微信支付
+      wx.requestPayment({
+        ...payment,
+        success: (payRes) => {
+          console.log('✅ 充值支付成功:', payRes)
+
+          wx.showModal({
+            title: '充值成功',
+            content: `充值成功！余额稍后更新，请返回查看。`,
+            showCancel: false,
+            success: () => {
+              wx.navigateBack()
+            }
+          })
+        },
+        fail: (payErr) => {
+          console.error('❌ 充值支付失败:', payErr)
+
+          if (payErr.errMsg.indexOf('cancel') !== -1) {
+            wx.showToast({
+              title: '已取消支付',
+              icon: 'none'
+            })
+          } else {
+            wx.showModal({
+              title: '支付失败',
+              content: payErr.errMsg || '支付过程中出现错误，请重试',
+              showCancel: false
+            })
+          }
+        }
+      })
+
     } catch (error) {
       wx.hideLoading()
       console.error('充值失败:', error)
       wx.showToast({
         title: '充值失败',
-        icon: 'none'
-      })
-    }
-  },
-
-  // 模拟支付成功（开发阶段使用）
-  async simulatePaymentSuccess(orderNo, orderId) {
-    wx.showLoading({
-      title: '处理支付结果...',
-      mask: true
-    })
-
-    try {
-      // 调用支付回调云函数
-      const res = await wx.cloud.callFunction({
-        name: 'rechargeCallback',
-        data: {
-          orderNo: orderNo,
-          transactionId: `MOCK_${orderId}`
-        }
-      })
-
-      wx.hideLoading()
-
-      if (res.result.success) {
-        wx.showModal({
-          title: '充值成功',
-          content: `恭喜您！充值成功，当前余额：¥${res.result.balance.toFixed(2)}`,
-          showCancel: false,
-          success: () => {
-            // 返回个人中心
-            wx.navigateBack()
-          }
-        })
-      } else {
-        wx.showToast({
-          title: res.result.message || '充值失败',
-          icon: 'none'
-        })
-      }
-    } catch (error) {
-      wx.hideLoading()
-      console.error('支付回调失败:', error)
-      wx.showToast({
-        title: '处理失败',
         icon: 'none'
       })
     }
