@@ -23,63 +23,68 @@ exports.main = async (event, context) => {
     const { data: boatList } = await db.collection('boats')
       .where({
         boatNumber: boatNumber.toUpperCase(),
-        enabled: true  // CMS规范
+        enabled: true
       })
       .get()
 
     if (boatList.length === 0) {
-      return {
-        code: 30001,
-        message: '船只不存在',
-        data: null
-      }
+      return { code: 30001, message: '船只不存在', data: null }
     }
 
     const boat = boatList[0]
 
     if (boat.status !== 'idle') {
-      return {
-        code: 30002,
-        message: '船只正在使用中',
-        data: null
-      }
+      return { code: 30002, message: '船只正在使用中', data: null }
     }
 
     // 查找订单
     const { data: orderList } = await db.collection('orders')
-      .where({
-        _id: orderId
-      })
+      .where({ _id: orderId })
       .get()
 
     if (orderList.length === 0) {
-      return {
-        code: 10001,
-        message: '订单不存在',
-        data: null
-      }
+      return { code: 10001, message: '订单不存在', data: null }
     }
 
     const order = orderList[0]
 
     if (order.status !== 'paid') {
+      return { code: 10002, message: '订单状态不正确，无法发船', data: null }
+    }
+
+    // 船型校验：检查船只的船型是否与订单的船型一致
+    const orderBoatTypeCode = order.boatType?.code || order.boatType?.id
+    const boatTypeCode = boat.boatTypeCode || boat.boatTypeId
+    if (orderBoatTypeCode && boatTypeCode && orderBoatTypeCode !== boatTypeCode) {
       return {
-        code: 10002,
-        message: '订单状态不正确，无法发船',
+        code: 30003,
+        message: `船型不匹配：订单要求「${order.boatType?.name || orderBoatTypeCode}」，但船号${boat.boatNumber}属于其他船型`,
         data: null
+      }
+    }
+
+    // 查询核销员工真实姓名
+    let staffName = '未知员工'
+    if (staffId) {
+      try {
+        const { data: staffInfo } = await db.collection('staff').doc(staffId).get()
+        staffName = staffInfo.realName || staffInfo.username || '未知员工'
+      } catch (e) {
+        console.warn('查询员工信息失败:', e.message)
       }
     }
 
     const startTime = new Date()
 
-    // 开始事务操作
-    // 1. 更新订单 - 保持嵌套结构（orders不需要CMS编辑）
+    // 1. 更新订单
     await db.collection('orders').doc(orderId).update({
       data: {
-        'boat.id': boat._id,  // 嵌套字段
-        'boat.number': boat.boatNumber,  // 嵌套字段
+        'boat.id': boat._id,
+        'boat.number': boat.boatNumber,
         status: 'timing',
-        'timing.startTime': startTime,  // 嵌套字段
+        'timing.startTime': startTime,
+        'verification.startStaffId': staffId || 'unknown',
+        'verification.startStaffName': staffName,
         updatedAt: startTime
       }
     })
@@ -93,20 +98,20 @@ exports.main = async (event, context) => {
       }
     })
 
-    // 3. 记录核销日志 - 扁平化结构（verificationLogs需要CMS友好）
+    // 3. 记录核销日志
     await db.collection('verificationLogs').add({
       data: {
         orderId: orderId,
-        orderNo: order.orderNo,  // 冗余字段
+        orderNo: order.orderNo,
         staffId: staffId || 'unknown',
-        staffName: '员工',  // TODO: 查询员工姓名
+        staffName: staffName,
         boatId: boat._id,
         boatNumber: boat.boatNumber,
         actionType: 'start',
         scanTime: startTime,
         remark: '',
-        sort: Date.now(),  // CMS通用字段
-        enabled: true,  // CMS通用字段
+        sort: Date.now(),
+        enabled: true,
         createdAt: startTime,
         updatedAt: startTime
       }

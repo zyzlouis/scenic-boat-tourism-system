@@ -45,7 +45,18 @@ exports.main = async (event, context) => {
     }
 
     const endTime = new Date()
-    const startTime = new Date(order.timing.startTime)  // 嵌套字段
+    const startTime = new Date(order.timing.startTime)
+
+    // 查询核销员工真实姓名
+    let staffName = '未知员工'
+    if (staffId) {
+      try {
+        const { data: staffInfo } = await db.collection('staff').doc(staffId).get()
+        staffName = staffInfo.realName || staffInfo.username || '未知员工'
+      } catch (e) {
+        console.warn('查询员工信息失败:', e.message)
+      }
+    }
 
     // 计算使用时长
     const usedSeconds = Math.floor((endTime - startTime) / 1000)
@@ -67,18 +78,20 @@ exports.main = async (event, context) => {
     const finalAmount = order.pricing.basePrice + overtimeFee  // 嵌套字段
     const refundAmount = order.pricing.depositAmount - overtimeFee  // 嵌套字段
 
-    // 1. 更新订单 - 保持嵌套结构（orders不需要CMS编辑）
+    // 1. 更新订单
     await db.collection('orders').doc(orderId).update({
       data: {
         status: 'completed',
-        'timing.endTime': endTime,  // 嵌套字段
-        'timing.usedSeconds': usedSeconds,  // 嵌套字段
-        'timing.usedMinutes': usedMinutes,  // 嵌套字段
-        'timing.overtimeMinutes': overtimeMinutes,  // 嵌套字段
-        'timing.overtimeFee': overtimeFee,  // 嵌套字段
-        'settlement.finalAmount': finalAmount,  // 嵌套字段
-        'settlement.refundAmount': refundAmount,  // 嵌套字段
-        'settlement.refundedAt': endTime,  // 嵌套字段 TODO: 实际应该在退款成功后设置
+        'timing.endTime': endTime,
+        'timing.usedSeconds': usedSeconds,
+        'timing.usedMinutes': usedMinutes,
+        'timing.overtimeMinutes': overtimeMinutes,
+        'timing.overtimeFee': overtimeFee,
+        'settlement.finalAmount': finalAmount,
+        'settlement.refundAmount': refundAmount,
+        'settlement.refundedAt': endTime,
+        'verification.endStaffId': staffId || 'unknown',
+        'verification.endStaffName': staffName,
         updatedAt: endTime,
         completedAt: endTime
       }
@@ -94,20 +107,20 @@ exports.main = async (event, context) => {
       })
     }
 
-    // 3. 记录核销日志 - 扁平化结构（verificationLogs需要CMS友好）
+    // 3. 记录核销日志
     await db.collection('verificationLogs').add({
       data: {
         orderId: orderId,
-        orderNo: order.orderNo,  // 冗余字段
+        orderNo: order.orderNo,
         staffId: staffId || 'unknown',
-        staffName: '员工',
-        boatId: order.boat.id,  // 嵌套字段
-        boatNumber: order.boat.number,  // 嵌套字段
+        staffName: staffName,
+        boatId: order.boat.id,
+        boatNumber: order.boat.number,
         actionType: 'end',
         scanTime: endTime,
         remark: '',
-        sort: Date.now(),  // CMS通用字段
-        enabled: true,  // CMS通用字段
+        sort: Date.now(),
+        enabled: true,
         createdAt: endTime,
         updatedAt: endTime
       }
