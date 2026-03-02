@@ -19,14 +19,18 @@ exports.main = async (event, context) => {
 
     console.log('📱 获取手机号结果:', result)
 
-    if (result.errcode === 0) {
+    // 微信返回的字段可能是 errCode 或 errcode
+    if (result.errCode === 0 || result.errcode === 0) {
       const phoneNumber = result.phoneInfo.phoneNumber
+      console.log('✅ 成功获取手机号:', phoneNumber)
 
       // 更新用户信息到数据库
       const { data: users } = await db.collection('users')
         .where({ _openid: wxContext.OPENID })
         .limit(1)
         .get()
+
+      console.log('📊 查询用户结果:', users.length > 0 ? '用户已存在' : '用户不存在')
 
       if (users.length > 0) {
         // 用户已存在，更新手机号
@@ -36,6 +40,7 @@ exports.main = async (event, context) => {
             updatedAt: new Date()
           }
         })
+        console.log('✅ 更新用户手机号成功')
       } else {
         // 用户不存在，创建用户记录
         await db.collection('users').add({
@@ -47,13 +52,16 @@ exports.main = async (event, context) => {
             updatedAt: new Date()
           }
         })
+        console.log('✅ 创建用户记录成功')
       }
 
+      console.log('✅ 返回成功结果')
       return {
         success: true,
         phoneNumber: phoneNumber
       }
     } else {
+      console.error('❌ 微信接口返回错误:', result)
       return {
         success: false,
         message: '获取手机号失败'
