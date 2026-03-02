@@ -425,6 +425,96 @@
             </div>
           </div>
 
+          <!-- 余额流水 -->
+          <div v-if="currentMenu === 'balanceLogs'">
+            <div class="page-header">
+              <div class="page-title">余额流水</div>
+            </div>
+            <div class="data-table">
+              <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 14px; color: #606266; white-space: nowrap;">用户搜索：</span>
+                <el-input
+                  v-model="balanceLogsFilter.userSearch"
+                  placeholder="输入手机号/昵称/OpenID"
+                  style="width: 250px;"
+                  clearable
+                />
+                <span style="font-size: 14px; color: #606266; white-space: nowrap;">日期范围：</span>
+                <el-date-picker
+                  v-model="balanceLogsFilter.dateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  style="width: 300px;"
+                />
+                <span style="font-size: 14px; color: #606266; white-space: nowrap;">类型：</span>
+                <el-select v-model="balanceLogsFilter.type" placeholder="全部" style="width: 120px;" clearable>
+                  <el-option label="充值" value="recharge" />
+                  <el-option label="消费" value="consume" />
+                  <el-option label="退款" value="refund" />
+                </el-select>
+                <el-button type="primary" @click="loadBalanceLogs">查询</el-button>
+              </div>
+              <el-table :data="balanceLogsData" v-loading="loading">
+                <el-table-column label="用户信息" width="200">
+                  <template #default="{ row }">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <el-avatar :src="row.userInfo?.avatarUrl" size="small" />
+                      <div style="flex: 1; min-width: 0;">
+                        <div style="font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          {{ row.userInfo?.nickName || '未知用户' }}
+                        </div>
+                        <div style="font-size: 12px; color: #909399; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                          {{ row.userInfo?.phone || '未绑定' }}
+                        </div>
+                      </div>
+                    </div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="类型" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="getBalanceLogTypeTag(row.type)" size="small">
+                      {{ formatBalanceLogType(row.type) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="变化金额" width="120">
+                  <template #default="{ row }">
+                    <span :style="{ color: row.changeAmount > 0 ? '#67c23a' : '#f56c6c', fontWeight: 'bold' }">
+                      {{ row.changeAmount > 0 ? '+' : '' }}¥{{ row.changeAmount.toFixed(2) }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="变化前余额" width="120">
+                  <template #default="{ row }">¥{{ row.beforeBalance.toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="变化后余额" width="120">
+                  <template #default="{ row }">¥{{ row.afterBalance.toFixed(2) }}</template>
+                </el-table-column>
+                <el-table-column label="当前余额" width="120">
+                  <template #default="{ row }">
+                    <span style="color: #409eff; font-weight: bold;">
+                      ¥{{ (row.userInfo?.balance || 0).toFixed(2) }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="关联订单" width="180">
+                  <template #default="{ row }">{{ row.relatedOrderNo || '-' }}</template>
+                </el-table-column>
+                <el-table-column label="描述" min-width="200">
+                  <template #default="{ row }">{{ row.description }}</template>
+                </el-table-column>
+                <el-table-column label="时间" width="160">
+                  <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+                </el-table-column>
+              </el-table>
+              <div style="margin-top: 16px; text-align: right;">
+                <span style="font-size: 14px; color: #606266;">共 {{ balanceLogsTotal }} 条记录</span>
+              </div>
+            </div>
+          </div>
+
           <!-- 船型管理 -->
           <div v-if="currentMenu === 'boatTypes'">
             <div class="page-header">
@@ -1114,6 +1204,7 @@
           menus: [
             { key: 'orders', label: '订单管理', icon: '📋' },
             { key: 'orderStats', label: '数据统计', icon: '📊' },
+            { key: 'balanceLogs', label: '余额流水', icon: '💳' },
             { key: 'boatTypes', label: '船型管理', icon: '🚤' },
             { key: 'boats', label: '船只管理', icon: '⛵' },
             { key: 'pricingConfigs', label: '价格设置', icon: '💰' },
@@ -1150,6 +1241,15 @@
           rechargePlansData: [],
           settingsForm: {},
           settingsSaving: false,
+
+          // 余额流水相关
+          balanceLogsData: [],
+          balanceLogsTotal: 0,
+          balanceLogsFilter: {
+            userSearch: '',
+            dateRange: [],
+            type: ''
+          },
 
           // 对话框
           dialogVisible: false,
@@ -1329,6 +1429,8 @@
             await this.loadOrders();
           } else if (key === 'orderStats') {
             await this.loadOrderStats();
+          } else if (key === 'balanceLogs') {
+            await this.loadBalanceLogs();
           } else if (key === 'settings') {
             await this.loadSettings();
           } else {
@@ -1421,6 +1523,66 @@
             ElMessage.error('加载统计失败: ' + error.message);
           }
           this.loading = false;
+        },
+
+        // 加载余额流水
+        async loadBalanceLogs() {
+          this.loading = true;
+          try {
+            const data = {
+              limit: 100,
+              skip: 0
+            };
+
+            if (this.balanceLogsFilter.userSearch) {
+              data.userSearch = this.balanceLogsFilter.userSearch;
+            }
+
+            if (this.balanceLogsFilter.dateRange && this.balanceLogsFilter.dateRange.length === 2) {
+              data.startDate = this.balanceLogsFilter.dateRange[0];
+              data.endDate = this.balanceLogsFilter.dateRange[1];
+            }
+
+            if (this.balanceLogsFilter.type) {
+              data.type = this.balanceLogsFilter.type;
+            }
+
+            const res = await this.callAdminApi({
+              action: 'queryBalanceLogs',
+              data: data
+            });
+
+            if (res.code === 200) {
+              this.balanceLogsData = res.data;
+              this.balanceLogsTotal = res.total;
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('加载余额流水失败:', error);
+            ElMessage.error('加载余额流水失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // 格式化余额流水类型
+        formatBalanceLogType(type) {
+          const typeMap = {
+            'recharge': '充值',
+            'consume': '消费',
+            'refund': '退款'
+          };
+          return typeMap[type] || type;
+        },
+
+        // 格式化余额流水类型标签
+        getBalanceLogTypeTag(type) {
+          const tagMap = {
+            'recharge': 'success',
+            'consume': 'warning',
+            'refund': 'info'
+          };
+          return tagMap[type] || '';
         },
 
         // 统计表格合计行

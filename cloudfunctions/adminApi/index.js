@@ -19,6 +19,7 @@ const _ = db.command
  * - remove: 删除记录
  * - queryOrders: 查询订单（支持日期范围和状态筛选）
  * - orderStats: 按月统计已完成订单数量
+ * - queryBalanceLogs: 查询用户余额流水（支持用户搜索、时间范围、类型筛选）
  */
 exports.main = async (event, context) => {
   const { action, collection, data, docId, staffId } = event
@@ -35,8 +36,8 @@ exports.main = async (event, context) => {
     }
   }
 
-  // 2. 允许操作的集合白名单（queryOrders和orderStats不需要检查）
-  const skipCollectionCheck = ['queryOrders', 'orderStats']
+  // 2. 允许操作的集合白名单（queryOrders、orderStats、queryBalanceLogs不需要检查）
+  const skipCollectionCheck = ['queryOrders', 'orderStats', 'queryBalanceLogs']
   if (!skipCollectionCheck.includes(action)) {
     const allowedCollections = [
       'boatTypes', 'boats', 'staff', 'banners',
@@ -243,6 +244,93 @@ exports.main = async (event, context) => {
             monthlyStats
           }
         }
+      }
+
+      case 'queryBalanceLogs': {
+        // 查询用户余额流水（支持用户搜索、时间范围、类型筛选、分页）
+        const { userSearch, startDate, endDate, type, limit, skip } = data || {}
+
+        // 1. 如果有用户搜索条件，先查询用户
+        let targetOpenids = []
+        if (userSearch) {
+          // 支持按 openid、手机号、昵称搜索
+          const userQuery = db.collection('users').where(
+            _.or([
+              { _openid: userSearch },
+              { phone: userSearch },
+              { nickName: db.RegExp({ regexp: userSearch, options: 'i' }) }
+            ])
+          ).limit(100)
+
+          const usersRes = await userQuery.get()
+          if (usersRes.data.length === 0) {
+            return { code: 200, data: [], total: 0 }
+          }
+          targetOpenids = usersRes.data.map(u => u._openid)
+        }
+
+        // 2. 构建余额流水查询条件
+        let whereCondition = {}
+
+        if (targetOpenids.length > 0) {
+          whereCondition._openid = _.in(targetOpenids)
+        }
+
+        if (startDate && endDate) {
+          whereCondition.createdAt = _.gte(new Date(startDate)).and(_.lte(new Date(endDate)))
+        } else if (startDate) {
+          whereCondition.createdAt = _.gte(new Date(startDate))
+        } else if (endDate) {
+          whereCondition.createdAt = _.lte(new Date(endDate))
+        }
+
+        if (type) {
+          whereCondition.type = type
+        }
+
+        // 3. 查询余额流水
+        let query = db.collection('balance_logs')
+          .where(whereCondition)
+          .orderBy('createdAt', 'desc')
+
+        if (skip) query = query.skip(skip)
+        query = query.limit(limit || 100)
+
+        const logsRes = await query.get()
+        const logsCount = await db.collection('balance_logs').where(whereCondition).count()
+
+        // 4. 关联查询用户信息
+        const logs = logsRes.data
+        const openids = [...new Set(logs.map(log => log._openid))]
+
+        if (openids.length > 0) {
+          const usersRes = await db.collection('users')
+            .where({ _openid: _.in(openids) })
+            .limit(1000)
+            .get()
+
+          const userMap = {}
+          usersRes.data.forEach(user => {
+            userMap[user._openid] = {
+              nickName: user.nickName || '未设置',
+              avatarUrl: user.avatarUrl || '',
+              phone: user.phone || '未绑定',
+              balance: user.balance || 0
+            }
+          })
+
+          // 补充用户信息到流水记录
+          logs.forEach(log => {
+            log.userInfo = userMap[log._openid] || {
+              nickName: '未知用户',
+              avatarUrl: '',
+              phone: '未知',
+              balance: 0
+            }
+          })
+        }
+
+        return { code: 200, data: logs, total: logsCount.total }
       }
 
       default:
