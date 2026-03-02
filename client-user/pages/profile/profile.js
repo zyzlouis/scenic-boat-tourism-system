@@ -5,6 +5,7 @@ Page({
   data: {
     avatarUrl: '',
     nickName: '',
+    phone: '',
     balance: 0,
     totalRecharge: 0,
     totalGift: 0,
@@ -49,10 +50,11 @@ Page({
   },
 
   // 加载用户信息
-  loadUserInfo() {
-    // 从本地存储获取头像和昵称
+  async loadUserInfo() {
+    // 从本地存储获取头像、昵称和手机号
     const avatarUrl = wx.getStorageSync('avatarUrl')
     const nickName = wx.getStorageSync('nickName')
+    const phone = wx.getStorageSync('phone')
 
     if (avatarUrl) {
       this.setData({ avatarUrl })
@@ -60,25 +62,141 @@ Page({
     if (nickName) {
       this.setData({ nickName })
     }
+    if (phone) {
+      this.setData({ phone })
+    }
+
+    // 从云端获取用户信息
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getUserInfo'
+      })
+      if (res.result.success && res.result.data) {
+        const userInfo = res.result.data
+        if (userInfo.nickName) {
+          this.setData({ nickName: userInfo.nickName })
+          wx.setStorageSync('nickName', userInfo.nickName)
+        }
+        if (userInfo.phone) {
+          this.setData({ phone: userInfo.phone })
+          wx.setStorageSync('phone', userInfo.phone)
+        }
+        if (userInfo.avatarUrl) {
+          this.setData({ avatarUrl: userInfo.avatarUrl })
+          wx.setStorageSync('avatarUrl', userInfo.avatarUrl)
+        }
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+    }
   },
 
   // 选择头像（新方案）
-  onChooseAvatar(e) {
+  async onChooseAvatar(e) {
     const { avatarUrl } = e.detail
     console.log('🎭 用户选择头像:', avatarUrl)
 
-    this.setData({
-      avatarUrl,
-      nickName: '微信用户' // 默认昵称，因为无法直接获取
-    })
-
-    // 保存到本地存储
+    this.setData({ avatarUrl })
     wx.setStorageSync('avatarUrl', avatarUrl)
-    wx.setStorageSync('nickName', '微信用户')
 
-    wx.showToast({
-      title: '授权成功',
-      icon: 'success'
+    // 保存到云端
+    try {
+      await wx.cloud.callFunction({
+        name: 'updateUserInfo',
+        data: { avatarUrl }
+      })
+      wx.showToast({
+        title: '头像更新成功',
+        icon: 'success'
+      })
+    } catch (error) {
+      console.error('保存头像失败:', error)
+      wx.showToast({
+        title: '保存失败',
+        icon: 'none'
+      })
+    }
+  },
+
+  // 获取手机号
+  async onGetPhoneNumber(e) {
+    console.log('📱 获取手机号:', e.detail)
+
+    if (e.detail.code) {
+      try {
+        wx.showLoading({ title: '获取中...', mask: true })
+
+        const res = await wx.cloud.callFunction({
+          name: 'getPhoneNumber',
+          data: { code: e.detail.code }
+        })
+
+        wx.hideLoading()
+
+        if (res.result.success) {
+          const phone = res.result.phoneNumber
+          this.setData({ phone })
+          wx.setStorageSync('phone', phone)
+
+          wx.showToast({
+            title: '手机号绑定成功',
+            icon: 'success'
+          })
+        } else {
+          wx.showToast({
+            title: res.result.message || '获取失败',
+            icon: 'none'
+          })
+        }
+      } catch (error) {
+        wx.hideLoading()
+        console.error('获取手机号失败:', error)
+        wx.showToast({
+          title: '获取失败',
+          icon: 'none'
+        })
+      }
+    } else {
+      wx.showToast({
+        title: '取消授权',
+        icon: 'none'
+      })
+    }
+  },
+
+  // 设置昵称
+  onEditNickname() {
+    wx.showModal({
+      title: '设置昵称',
+      editable: true,
+      placeholderText: '请输入昵称',
+      success: async (res) => {
+        if (res.confirm && res.content) {
+          const nickName = res.content.trim()
+          if (nickName) {
+            try {
+              await wx.cloud.callFunction({
+                name: 'updateUserInfo',
+                data: { nickName }
+              })
+
+              this.setData({ nickName })
+              wx.setStorageSync('nickName', nickName)
+
+              wx.showToast({
+                title: '昵称设置成功',
+                icon: 'success'
+              })
+            } catch (error) {
+              console.error('保存昵称失败:', error)
+              wx.showToast({
+                title: '保存失败',
+                icon: 'none'
+              })
+            }
+          }
+        }
+      }
     })
   },
 

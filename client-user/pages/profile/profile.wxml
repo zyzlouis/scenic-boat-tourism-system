@@ -12,6 +12,17 @@
       />
       <view class="user-info">
         <view class="nickname">{{nickName || '未登录'}}</view>
+        <view wx:if="{{!phone}}" class="login-tip">
+          <button
+            class="phone-btn"
+            open-type="getPhoneNumber"
+            bindgetphonenumber="onGetPhoneNumber"
+            size="small"
+          >
+            绑定手机号
+          </button>
+        </view>
+        <view wx:else class="phone-number">{{phone}}</view>
         <view wx:if="{{!avatarUrl}}" class="login-tip">
           <button
             class="avatar-btn"
@@ -19,12 +30,18 @@
             bindchooseavatar="onChooseAvatar"
             size="small"
           >
-            授权登录
+            授权头像
           </button>
         </view>
-        <view wx:else class="vip-status">
-          <text wx:if="{{isVip}}" class="vip-badge">VIP会员</text>
-          <text wx:else class="normal-badge">普通用户</text>
+        <view wx:if="{{!nickName || nickName === '微信用户'}}" class="login-tip">
+          <button
+            class="nickname-btn"
+            type="nickname"
+            bindtap="onEditNickname"
+            size="small"
+          >
+            设置昵称
+          </button>
         </view>
       </view>
     </view>

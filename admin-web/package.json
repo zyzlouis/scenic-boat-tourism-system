@@ -1,0 +1,20 @@
+{
+  "name": "admin-web",
+  "version": "1.0.0",
+  "description": "- **前端**: 单个 HTML 文件（Vue 3 + Element Plus + CDN） - **数据库**: 微信云开发云数据库（通过 @cloudbase/js-sdk 直接操作） - **部署**: 云开发静态网站托管（免费、零配置） - **认证**: 云函数验证管理员权限",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@cloudbase/js-sdk": "^2.25.6",
+    "element-plus": "^2.4.4",
+    "esbuild": "^0.27.3",
+    "tcb-js-sdk": "^1.10.10",
+    "vue": "^3.3.11"
+  }
+}
