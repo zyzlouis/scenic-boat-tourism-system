@@ -1197,6 +1197,8 @@
             { key: 'orders', label: '订单管理', icon: '📋' },
             { key: 'orderStats', label: '数据统计', icon: '📊' },
             { key: 'balanceLogs', label: '余额流水', icon: '💳' },
+            { key: 'users', label: '用户管理', icon: '👤' },
+            { key: 'adminLogs', label: '操作日志', icon: '📝' },
             { key: 'boatTypes', label: '船型管理', icon: '🚤' },
             { key: 'boats', label: '船只管理', icon: '⛵' },
             { key: 'pricingConfigs', label: '价格设置', icon: '💰' },
@@ -1241,6 +1243,33 @@
             userSearch: '',
             dateRange: [],
             type: ''
+          },
+
+          // 用户管理相关
+          usersData: [],
+          usersTotal: 0,
+          usersFilter: {
+            userSearch: ''
+          },
+          userDetailVisible: false,
+          userDetailData: null,
+          userBalanceLogsData: [],
+          editBalanceVisible: false,
+          editBalanceForm: {
+            userId: '',
+            currentBalance: 0,
+            newBalance: 0,
+            reason: ''
+          },
+
+          // 操作日志相关
+          adminLogsData: [],
+          adminLogsTotal: 0,
+          adminLogsFilter: {
+            dateRange: [],
+            staffId: '',
+            action: '',
+            module: ''
           },
 
           // 对话框
@@ -1423,6 +1452,10 @@
             await this.loadOrderStats();
           } else if (key === 'balanceLogs') {
             await this.loadBalanceLogs();
+          } else if (key === 'users') {
+            await this.loadUsers();
+          } else if (key === 'adminLogs') {
+            await this.loadAdminLogs();
           } else if (key === 'settings') {
             await this.loadSettings();
           } else {

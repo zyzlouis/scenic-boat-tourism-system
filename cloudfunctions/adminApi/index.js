@@ -20,6 +20,10 @@ const _ = db.command
  * - queryOrders: 查询订单（支持日期范围和状态筛选）
  * - orderStats: 按月统计已完成订单数量
  * - queryBalanceLogs: 查询用户余额流水（支持用户搜索、时间范围、类型筛选）
+ * - queryUsers: 查询用户列表（支持搜索、分页）
+ * - getUserDetail: 获取用户详情（包括余额流水）
+ * - updateUserBalance: 更新用户余额（记录操作日志）
+ * - queryAdminLogs: 查询操作日志（支持筛选）
  */
 exports.main = async (event, context) => {
   const { action, collection, data, docId, staffId } = event
@@ -36,8 +40,8 @@ exports.main = async (event, context) => {
     }
   }
 
-  // 2. 允许操作的集合白名单（queryOrders、orderStats、queryBalanceLogs不需要检查）
-  const skipCollectionCheck = ['queryOrders', 'orderStats', 'queryBalanceLogs']
+  // 2. 允许操作的集合白名单（特殊操作不需要检查）
+  const skipCollectionCheck = ['queryOrders', 'orderStats', 'queryBalanceLogs', 'queryUsers', 'getUserDetail', 'updateUserBalance', 'queryAdminLogs']
   if (!skipCollectionCheck.includes(action)) {
     const allowedCollections = [
       'boatTypes', 'boats', 'staff', 'banners',
@@ -344,6 +348,178 @@ exports.main = async (event, context) => {
         }
 
         return { code: 200, data: logs, total: logsCount.total }
+      }
+
+      case 'queryUsers': {
+        // 查询用户列表（支持搜索、分页）
+        const { userSearch, limit, skip } = data || {}
+
+        let whereCondition = {}
+
+        if (userSearch) {
+          // 支持按 openid、手机号、昵称搜索
+          whereCondition = _.or([
+            { _openid: userSearch },
+            { phone: userSearch },
+            { nickName: db.RegExp({ regexp: userSearch, options: 'i' }) }
+          ])
+        }
+
+        let query = db.collection('users')
+          .where(whereCondition)
+          .orderBy('createdAt', 'desc')
+
+        if (skip) query = query.skip(skip)
+        query = query.limit(limit || 100)
+
+        const usersRes = await query.get()
+        const usersCount = await db.collection('users').where(whereCondition).count()
+
+        return { code: 200, data: usersRes.data, total: usersCount.total }
+      }
+
+      case 'getUserDetail': {
+        // 获取用户详情（包括余额流水）
+        const { userId } = data || {}
+
+        if (!userId) {
+          return { code: 400, message: '缺少用户ID' }
+        }
+
+        // 1. 查询用户信息
+        const userRes = await db.collection('users').doc(userId).get()
+        if (!userRes.data) {
+          return { code: 404, message: '用户不存在' }
+        }
+
+        const user = userRes.data
+
+        // 2. 查询用户的余额流水
+        const logsRes = await db.collection('balance_logs')
+          .where({ _openid: user._openid })
+          .orderBy('createdAt', 'desc')
+          .limit(1000)
+          .get()
+
+        return {
+          code: 200,
+          data: {
+            user: user,
+            balanceLogs: logsRes.data
+          }
+        }
+      }
+
+      case 'updateUserBalance': {
+        // 更新用户余额（记录操作日志）
+        const { userId, newBalance, reason } = data || {}
+
+        if (!userId || newBalance === undefined || !reason) {
+          return { code: 400, message: '参数不完整' }
+        }
+
+        // 1. 查询用户
+        const userRes = await db.collection('users').doc(userId).get()
+        if (!userRes.data) {
+          return { code: 404, message: '用户不存在' }
+        }
+
+        const user = userRes.data
+        const oldBalance = user.balance || 0
+        const changeAmount = newBalance - oldBalance
+
+        // 2. 更新用户余额
+        await db.collection('users').doc(userId).update({
+          data: {
+            balance: newBalance,
+            updatedAt: new Date()
+          }
+        })
+
+        // 3. 写入余额流水记录
+        await db.collection('balance_logs').add({
+          data: {
+            _openid: user._openid,
+            userId: userId,
+            type: 'adjust',
+            changeAmount: changeAmount,
+            beforeBalance: oldBalance,
+            afterBalance: newBalance,
+            relatedOrderNo: '',
+            description: `管理员调整余额：${reason}`,
+            sort: Date.now(),
+            enabled: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        })
+
+        // 4. 写入操作日志
+        const staffRes = await db.collection('staff').doc(staffId).get()
+        const staffName = staffRes.data?.realName || staffRes.data?.username || '未知'
+
+        await db.collection('admin_logs').add({
+          data: {
+            staffId: staffId,
+            staffName: staffName,
+            action: 'update',
+            module: 'users',
+            target: user._openid,
+            details: `调整用户余额：${oldBalance.toFixed(2)} -> ${newBalance.toFixed(2)}，原因：${reason}`,
+            oldValue: oldBalance.toString(),
+            newValue: newBalance.toString(),
+            createdAt: new Date()
+          }
+        })
+
+        return {
+          code: 200,
+          message: '余额调整成功',
+          data: {
+            oldBalance: oldBalance,
+            newBalance: newBalance,
+            changeAmount: changeAmount
+          }
+        }
+      }
+
+      case 'queryAdminLogs': {
+        // 查询操作日志（支持筛选）
+        const { startDate, endDate, staffId: filterStaffId, action: filterAction, module: filterModule, limit, skip } = data || {}
+
+        let whereCondition = {}
+
+        if (startDate && endDate) {
+          whereCondition.createdAt = _.gte(new Date(startDate)).and(_.lte(new Date(endDate)))
+        } else if (startDate) {
+          whereCondition.createdAt = _.gte(new Date(startDate))
+        } else if (endDate) {
+          whereCondition.createdAt = _.lte(new Date(endDate))
+        }
+
+        if (filterStaffId) {
+          whereCondition.staffId = filterStaffId
+        }
+
+        if (filterAction) {
+          whereCondition.action = filterAction
+        }
+
+        if (filterModule) {
+          whereCondition.module = filterModule
+        }
+
+        let query = db.collection('admin_logs')
+          .where(whereCondition)
+          .orderBy('createdAt', 'desc')
+
+        if (skip) query = query.skip(skip)
+        query = query.limit(limit || 100)
+
+        const logsRes = await query.get()
+        const logsCount = await db.collection('admin_logs').where(whereCondition).count()
+
+        return { code: 200, data: logsRes.data, total: logsCount.total }
       }
 
       default:
