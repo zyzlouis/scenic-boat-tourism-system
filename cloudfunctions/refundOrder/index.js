@@ -57,19 +57,11 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 4. 检查是否有支付信息
-    if (!order.payment || !order.payment.outTradeNo) {
-      return {
-        code: 400,
-        message: '订单缺少支付信息，无法退款',
-        data: null
-      }
-    }
+    // 4. 检查支付方式，区分余额支付和微信支付
+    const paymentMethod = order.payment?.method || 'wechat'
+    const _ = db.command
 
-    // 5. 生成退款单号（唯一）
-    const outRefundNo = `REFUND${Date.now()}${Math.floor(Math.random() * 1000)}`
-
-    // 6. 更新订单状态为"退款处理中"
+    // 5. 更新订单状态为"退款处理中"
     await db.collection('orders').doc(orderId).update({
       data: {
         refundStatus: 'processing',
@@ -78,70 +70,170 @@ exports.main = async (event, context) => {
       }
     })
 
-    console.log('💰 开始退款:', {
-      orderId: orderId,
-      outTradeNo: order.payment.outTradeNo,
-      outRefundNo: outRefundNo,
-      totalAmount: order.totalAmount
-    })
-
-    // 7. 调用微信退款 API
-    const refundResult = await cloud.cloudPay.refund({
-      outTradeNo: order.payment.outTradeNo,       // 商户订单号
-      outRefundNo: outRefundNo,                   // 退款单号
-      totalFee: Math.round(order.totalAmount * 100),   // 订单总金额（分）
-      refundFee: Math.round(order.totalAmount * 100),  // 退款金额（分，全额退款）
-      refundDesc: reason || '用户申请退款',        // 退款原因
-      subMchId: '1106454761',                     // 商户号（必须）
-      envId: 'cc-5gos3ctb46510316',              // 云环境ID
-      functionName: 'refundCallback'              // 退款回调函数
-    })
-
-    console.log('💰 退款结果:', refundResult)
-
-    // 8. 检查退款结果
-    if (refundResult.returnCode === 'SUCCESS' && refundResult.resultCode === 'SUCCESS') {
-      // 退款成功，更新订单状态
-      await db.collection('orders').doc(orderId).update({
-        data: {
-          status: 'refunded',
-          refundStatus: 'success',
-          refundAmount: order.totalAmount,
-          refundAt: new Date(),
-          refundId: refundResult.refundId || outRefundNo,
-          isAutoRefund: false,
-          updatedAt: new Date()
-        }
+    if (paymentMethod === 'balance') {
+      // ========== 余额支付订单退款 ==========
+      console.log('💰 余额支付订单退款:', {
+        orderId: orderId,
+        totalAmount: order.totalAmount
       })
 
-      return {
-        code: 200,
-        message: '退款成功',
-        data: {
-          orderId: orderId,
-          refundAmount: order.totalAmount,
-          refundId: refundResult.refundId || outRefundNo,
-          notice: '退款将在1-3个工作日内原路返回您的支付账户'
+      try {
+        // 查询用户
+        const { data: users } = await db.collection('users')
+          .where({ _openid: wxContext.OPENID })
+          .limit(1)
+          .get()
+
+        if (users.length === 0) {
+          throw new Error('用户不存在')
+        }
+
+        const user = users[0]
+
+        // 退回余额（使用原子操作）
+        await db.collection('users').doc(user._id).update({
+          data: {
+            balance: _.inc(order.totalAmount),
+            updatedAt: new Date()
+          }
+        })
+
+        // 查询更新后的余额
+        const { data: updatedUser } = await db.collection('users').doc(user._id).get()
+
+        // 写入余额流水记录
+        await db.collection('balance_logs').add({
+          data: {
+            _openid: wxContext.OPENID,
+            userId: user._id,
+            type: 'refund',
+            changeAmount: order.totalAmount,
+            beforeBalance: (updatedUser.balance || 0) - order.totalAmount,
+            afterBalance: updatedUser.balance || 0,
+            relatedOrderNo: order.orderNo,
+            description: `订单退款（${order.boatType.name}）`,
+            sort: Date.now(),
+            enabled: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        })
+
+        // 更新订单状态为退款成功
+        await db.collection('orders').doc(orderId).update({
+          data: {
+            status: 'refunded',
+            refundStatus: 'success',
+            refundAmount: order.totalAmount,
+            refundAt: new Date(),
+            isAutoRefund: false,
+            updatedAt: new Date()
+          }
+        })
+
+        console.log('✅ 余额退款成功')
+
+        return {
+          code: 200,
+          message: '退款成功',
+          data: {
+            orderId: orderId,
+            refundAmount: order.totalAmount,
+            notice: '退款已退回到您的账户余额'
+          }
+        }
+      } catch (error) {
+        console.error('❌ 余额退款失败:', error)
+
+        await db.collection('orders').doc(orderId).update({
+          data: {
+            refundStatus: 'failed',
+            refundFailReason: error.message || '退款失败',
+            updatedAt: new Date()
+          }
+        })
+
+        return {
+          code: 500,
+          message: error.message || '退款失败',
+          data: null
         }
       }
     } else {
-      // 退款失败
-      const errorMsg = refundResult.returnMsg || refundResult.errCodeDes || '退款失败'
-
-      await db.collection('orders').doc(orderId).update({
-        data: {
-          refundStatus: 'failed',
-          refundFailReason: errorMsg,
-          updatedAt: new Date()
+      // ========== 微信支付订单退款 ==========
+      // 检查是否有支付信息
+      if (!order.payment || !order.payment.outTradeNo) {
+        return {
+          code: 400,
+          message: '订单缺少支付信息，无法退款',
+          data: null
         }
+      }
+
+      const outRefundNo = `REFUND${Date.now()}${Math.floor(Math.random() * 1000)}`
+
+      console.log('💰 微信支付订单退款:', {
+        orderId: orderId,
+        outTradeNo: order.payment.outTradeNo,
+        outRefundNo: outRefundNo,
+        totalAmount: order.totalAmount
       })
 
-      console.error('❌ 退款失败:', refundResult)
+      // 调用微信退款 API
+      const refundResult = await cloud.cloudPay.refund({
+        outTradeNo: order.payment.outTradeNo,
+        outRefundNo: outRefundNo,
+        totalFee: Math.round(order.totalAmount * 100),
+        refundFee: Math.round(order.totalAmount * 100),
+        refundDesc: reason || '用户申请退款',
+        subMchId: '1106454761',
+        envId: 'cc-5gos3ctb46510316',
+        functionName: 'refundCallback'
+      })
 
-      return {
-        code: 500,
-        message: errorMsg,
-        data: null
+      console.log('💰 微信退款结果:', refundResult)
+
+      if (refundResult.returnCode === 'SUCCESS' && refundResult.resultCode === 'SUCCESS') {
+        await db.collection('orders').doc(orderId).update({
+          data: {
+            status: 'refunded',
+            refundStatus: 'success',
+            refundAmount: order.totalAmount,
+            refundAt: new Date(),
+            refundId: refundResult.refundId || outRefundNo,
+            isAutoRefund: false,
+            updatedAt: new Date()
+          }
+        })
+
+        return {
+          code: 200,
+          message: '退款成功',
+          data: {
+            orderId: orderId,
+            refundAmount: order.totalAmount,
+            refundId: refundResult.refundId || outRefundNo,
+            notice: '退款将在1-3个工作日内原路返回您的支付账户'
+          }
+        }
+      } else {
+        const errorMsg = refundResult.returnMsg || refundResult.errCodeDes || '退款失败'
+
+        await db.collection('orders').doc(orderId).update({
+          data: {
+            refundStatus: 'failed',
+            refundFailReason: errorMsg,
+            updatedAt: new Date()
+          }
+        })
+
+        console.error('❌ 微信退款失败:', refundResult)
+
+        return {
+          code: 500,
+          message: errorMsg,
+          data: null
+        }
       }
     }
 

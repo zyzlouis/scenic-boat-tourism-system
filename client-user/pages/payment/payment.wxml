@@ -91,3 +91,25 @@
     </van-button>
   </view>
 </view>
+
+<!-- 手机号授权弹窗 -->
+<van-dialog
+  use-slot
+  show="{{ showPhoneAuth }}"
+  title="需要绑定手机号"
+  show-cancel-button
+  bind:cancel="onCancelPhoneAuth"
+>
+  <view style="padding: 20px; text-align: center;">
+    <view style="margin-bottom: 20px; color: #666;">
+      为了更好地为您服务，请先绑定手机号
+    </view>
+    <button
+      class="phone-auth-btn"
+      open-type="getPhoneNumber"
+      bindgetphonenumber="onGetPhoneNumber"
+    >
+      授权手机号
+    </button>
+  </view>
+</van-dialog>

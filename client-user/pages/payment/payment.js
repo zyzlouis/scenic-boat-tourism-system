@@ -7,7 +7,8 @@ Page({
     balance: 0,
     paymentMethod: 'wechat', // wechat 或 balance
     loading: false,
-    rechargeEnabled: false  // 储值功能开关
+    rechargeEnabled: false,  // 储值功能开关
+    showPhoneAuth: false  // 是否显示手机号授权按钮
   },
 
   onLoad(options) {
@@ -84,11 +85,101 @@ Page({
       return
     }
 
+    // 检查用户是否有手机号
+    const hasPhone = await this.checkUserPhone()
+    if (!hasPhone) {
+      // 没有手机号，提示用户授权
+      wx.showModal({
+        title: '需要绑定手机号',
+        content: '为了更好地为您服务，请先绑定手机号',
+        confirmText: '去绑定',
+        success: (res) => {
+          if (res.confirm) {
+            // 用户点击确定，显示授权按钮
+            this.setData({ showPhoneAuth: true })
+          }
+        }
+      })
+      return
+    }
+
+    // 有手机号，继续支付流程
     if (this.data.paymentMethod === 'balance') {
       this.payWithBalance()
     } else {
       this.payWithWechat()
     }
+  },
+
+  // 检查用户是否有手机号
+  async checkUserPhone() {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'getUserInfo'
+      })
+      if (res.result.success && res.result.data && res.result.data.phone) {
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('检查手机号失败:', error)
+      return false
+    }
+  },
+
+  // 获取手机号授权
+  async onGetPhoneNumber(e) {
+    console.log('📱 获取手机号:', e.detail)
+
+    if (e.detail.code) {
+      try {
+        wx.showLoading({ title: '授权中...', mask: true })
+
+        const res = await wx.cloud.callFunction({
+          name: 'getPhoneNumber',
+          data: { code: e.detail.code }
+        })
+
+        wx.hideLoading()
+
+        if (res.result.success) {
+          wx.showToast({
+            title: '绑定成功',
+            icon: 'success'
+          })
+
+          // 隐藏授权按钮
+          this.setData({ showPhoneAuth: false })
+
+          // 继续支付流程
+          setTimeout(() => {
+            this.doPay()
+          }, 1500)
+        } else {
+          wx.showToast({
+            title: res.result.message || '授权失败',
+            icon: 'none'
+          })
+        }
+      } catch (error) {
+        wx.hideLoading()
+        console.error('获取手机号失败:', error)
+        wx.showToast({
+          title: '授权失败',
+          icon: 'none'
+        })
+      }
+    } else {
+      wx.showToast({
+        title: '取消授权',
+        icon: 'none'
+      })
+    }
+  },
+
+  // 取消手机号授权
+  onCancelPhoneAuth() {
+    this.setData({ showPhoneAuth: false })
   },
 
   // 余额支付
