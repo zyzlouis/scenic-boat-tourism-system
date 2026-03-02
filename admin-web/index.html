@@ -457,18 +457,10 @@
                 <el-button type="primary" @click="loadBalanceLogs">查询</el-button>
               </div>
               <el-table :data="balanceLogsData" v-loading="loading">
-                <el-table-column label="用户信息" width="200">
+                <el-table-column label="OpenID" width="240">
                   <template #default="{ row }">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                      <el-avatar :src="row.userInfo?.avatarUrl" size="small" />
-                      <div style="flex: 1; min-width: 0;">
-                        <div style="font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                          {{ row.userInfo?.nickName || '未知用户' }}
-                        </div>
-                        <div style="font-size: 12px; color: #909399; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                          {{ row.userInfo?.phone || '未绑定' }}
-                        </div>
-                      </div>
+                    <div style="font-size: 12px; color: #606266; font-family: monospace;">
+                      {{ row._openid }}
                     </div>
                   </template>
                 </el-table-column>
@@ -1553,6 +1545,8 @@
             });
 
             if (res.code === 200) {
+              console.log('📊 余额流水数据:', res.data);
+              console.log('📊 第一条数据:', res.data[0]);
               this.balanceLogsData = res.data;
               this.balanceLogsTotal = res.total;
             } else {

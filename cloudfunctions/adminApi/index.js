@@ -303,11 +303,19 @@ exports.main = async (event, context) => {
         const logs = logsRes.data
         const openids = [...new Set(logs.map(log => log._openid))]
 
+        console.log('📊 余额流水查询结果:', {
+          logsCount: logs.length,
+          uniqueOpenids: openids.length,
+          sampleLog: logs[0]
+        })
+
         if (openids.length > 0) {
           const usersRes = await db.collection('users')
             .where({ _openid: _.in(openids) })
             .limit(1000)
             .get()
+
+          console.log('👥 查询到的用户数量:', usersRes.data.length)
 
           const userMap = {}
           usersRes.data.forEach(user => {
@@ -327,6 +335,11 @@ exports.main = async (event, context) => {
               phone: '未知',
               balance: 0
             }
+          })
+
+          console.log('✅ 补充用户信息后的样例:', {
+            openid: logs[0]._openid,
+            userInfo: logs[0].userInfo
           })
         }
 
