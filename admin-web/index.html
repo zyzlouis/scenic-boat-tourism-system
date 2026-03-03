@@ -507,6 +507,111 @@
             </div>
           </div>
 
+          <!-- 用户管理 -->
+          <div v-if="currentMenu === 'users'">
+            <div class="page-header">
+              <div class="page-title">用户管理</div>
+            </div>
+            <div class="data-table">
+              <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center;">
+                <span style="font-size: 14px; color: #606266;">搜索用户：</span>
+                <el-input
+                  v-model="usersFilter.userSearch"
+                  placeholder="输入手机号/昵称/OpenID"
+                  style="width: 300px;"
+                  clearable
+                />
+                <el-button type="primary" @click="loadUsers">查询</el-button>
+              </div>
+              <el-table :data="usersData" v-loading="loading">
+                <el-table-column label="OpenID" width="220">
+                  <template #default="{ row }">
+                    <div style="font-size: 12px; font-family: monospace;">{{ row._openid }}</div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="昵称" width="120">
+                  <template #default="{ row }">{{ row.nickName || '未设置' }}</template>
+                </el-table-column>
+                <el-table-column label="手机号" width="130">
+                  <template #default="{ row }">{{ row.phone || '未绑定' }}</template>
+                </el-table-column>
+                <el-table-column label="当前余额" width="120">
+                  <template #default="{ row }">
+                    <span style="color: #409eff; font-weight: bold;">¥{{ (row.balance || 0).toFixed(2) }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="注册时间" width="160">
+                  <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+                </el-table-column>
+                <el-table-column label="操作" width="180" fixed="right">
+                  <template #default="{ row }">
+                    <el-button size="small" @click="viewUserDetail(row)">查看详情</el-button>
+                    <el-button size="small" type="warning" @click="openEditBalance(row)">编辑余额</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <div style="margin-top: 16px; text-align: right;">
+                <span style="font-size: 14px; color: #606266;">共 {{ usersTotal }} 个用户</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 操作日志 -->
+          <div v-if="currentMenu === 'adminLogs'">
+            <div class="page-header">
+              <div class="page-title">操作日志</div>
+            </div>
+            <div class="data-table">
+              <div style="display: flex; gap: 12px; margin-bottom: 16px; align-items: center; flex-wrap: wrap;">
+                <span style="font-size: 14px; color: #606266;">日期范围：</span>
+                <el-date-picker
+                  v-model="adminLogsFilter.dateRange"
+                  type="daterange"
+                  range-separator="至"
+                  start-placeholder="开始日期"
+                  end-placeholder="结束日期"
+                  style="width: 300px;"
+                />
+                <span style="font-size: 14px; color: #606266;">操作类型：</span>
+                <el-select v-model="adminLogsFilter.action" placeholder="全部" style="width: 120px;" clearable>
+                  <el-option label="新增" value="add" />
+                  <el-option label="修改" value="update" />
+                  <el-option label="删除" value="delete" />
+                </el-select>
+                <el-button type="primary" @click="loadAdminLogs">查询</el-button>
+              </div>
+              <el-table :data="adminLogsData" v-loading="loading">
+                <el-table-column label="时间" width="160">
+                  <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+                </el-table-column>
+                <el-table-column label="操作人" width="100">
+                  <template #default="{ row }">{{ row.staffName }}</template>
+                </el-table-column>
+                <el-table-column label="操作类型" width="100">
+                  <template #default="{ row }">
+                    <el-tag :type="getActionTypeTag(row.action)" size="small">
+                      {{ formatActionType(row.action) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作模块" width="100">
+                  <template #default="{ row }">{{ row.module }}</template>
+                </el-table-column>
+                <el-table-column label="操作对象" width="200">
+                  <template #default="{ row }">
+                    <div style="font-size: 12px; overflow: hidden; text-overflow: ellipsis;">{{ row.target }}</div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作详情" min-width="300">
+                  <template #default="{ row }">{{ row.details }}</template>
+                </el-table-column>
+              </el-table>
+              <div style="margin-top: 16px; text-align: right;">
+                <span style="font-size: 14px; color: #606266;">共 {{ adminLogsTotal }} 条记录</span>
+              </div>
+            </div>
+          </div>
+
           <!-- 船型管理 -->
           <div v-if="currentMenu === 'boatTypes'">
             <div class="page-header">
@@ -1162,6 +1267,105 @@
         <el-button type="primary" @click="handleSave" :loading="saveLoading">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 用户详情对话框 -->
+    <el-dialog
+      v-model="userDetailVisible"
+      title="用户详情"
+      width="900px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="userDetailData">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="OpenID">
+            <div style="font-size: 12px; font-family: monospace;">{{ userDetailData._openid }}</div>
+          </el-descriptions-item>
+          <el-descriptions-item label="昵称">{{ userDetailData.nickName || '未设置' }}</el-descriptions-item>
+          <el-descriptions-item label="手机号">{{ userDetailData.phone || '未绑定' }}</el-descriptions-item>
+          <el-descriptions-item label="当前余额">
+            <span style="color: #409eff; font-weight: bold;">¥{{ (userDetailData.balance || 0).toFixed(2) }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="注册时间" :span="2">{{ formatDate(userDetailData.createdAt) }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div style="margin-top: 24px;">
+          <div style="font-size: 16px; font-weight: bold; margin-bottom: 12px;">余额交易记录</div>
+          <el-table :data="userBalanceLogsData" v-loading="loading" max-height="400">
+            <el-table-column label="时间" width="160">
+              <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+            </el-table-column>
+            <el-table-column label="类型" width="100">
+              <template #default="{ row }">
+                <el-tag :type="getBalanceTypeTag(row.type)" size="small">
+                  {{ formatBalanceType(row.type) }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="金额" width="120">
+              <template #default="{ row }">
+                <span :style="{ color: row.changeAmount > 0 ? '#67c23a' : '#f56c6c', fontWeight: 'bold' }">
+                  {{ row.changeAmount > 0 ? '+' : '' }}¥{{ (row.changeAmount || 0).toFixed(2) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column label="余额" width="120">
+              <template #default="{ row }">¥{{ (row.afterBalance || 0).toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column label="说明" min-width="200">
+              <template #default="{ row }">{{ row.description || '-' }}</template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="userDetailVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑余额对话框 -->
+    <el-dialog
+      v-model="editBalanceVisible"
+      title="编辑用户余额"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="editBalanceForm" label-width="100px">
+        <el-form-item label="用户OpenID">
+          <div style="font-size: 12px; font-family: monospace; color: #606266;">{{ editBalanceForm.userId }}</div>
+        </el-form-item>
+        <el-form-item label="当前余额">
+          <div style="font-size: 16px; font-weight: bold; color: #409eff;">¥{{ editBalanceForm.currentBalance.toFixed(2) }}</div>
+        </el-form-item>
+        <el-form-item label="新余额" required>
+          <el-input-number
+            v-model="editBalanceForm.newBalance"
+            :min="0"
+            :precision="2"
+            :step="10"
+            style="width: 100%;"
+          />
+        </el-form-item>
+        <el-form-item label="调整原因" required>
+          <el-input
+            v-model="editBalanceForm.reason"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入调整原因，如：用户投诉退款、系统错误补偿等"
+          />
+        </el-form-item>
+        <el-alert
+          v-if="editBalanceForm.newBalance !== editBalanceForm.currentBalance"
+          :title="`将${editBalanceForm.newBalance > editBalanceForm.currentBalance ? '增加' : '减少'}余额 ¥${Math.abs(editBalanceForm.newBalance - editBalanceForm.currentBalance).toFixed(2)}`"
+          :type="editBalanceForm.newBalance > editBalanceForm.currentBalance ? 'success' : 'warning'"
+          :closable="false"
+          style="margin-top: 12px;"
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="editBalanceVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitBalanceEdit" :loading="saveLoading">确认修改</el-button>
+      </template>
+    </el-dialog>
   </div>
 
   <!-- Vue 3 (本地) -->
@@ -1607,9 +1811,185 @@
           const tagMap = {
             'recharge': 'success',
             'consume': 'warning',
-            'refund': 'info'
+            'refund': 'info',
+            'adjust': 'danger'
           };
           return tagMap[type] || '';
+        },
+
+        // ==================== 用户管理相关方法 ====================
+
+        // 加载用户列表
+        async loadUsers() {
+          this.loading = true;
+          try {
+            const data = {
+              limit: 100,
+              skip: 0
+            };
+
+            if (this.usersFilter.userSearch) {
+              data.userSearch = this.usersFilter.userSearch;
+            }
+
+            const res = await this.callAdminApi({
+              action: 'queryUsers',
+              data: data
+            });
+
+            if (res.code === 200) {
+              this.usersData = res.data;
+              this.usersTotal = res.total;
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('加载用户列表失败:', error);
+            ElMessage.error('加载用户列表失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // 查看用户详情
+        async viewUserDetail(user) {
+          try {
+            this.loading = true;
+            const res = await this.callAdminApi({
+              action: 'getUserDetail',
+              data: { userId: user._id }
+            });
+
+            if (res.code === 200) {
+              this.userDetailData = res.data.user;
+              this.userBalanceLogsData = res.data.balanceLogs;
+              this.userDetailVisible = true;
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('加载用户详情失败:', error);
+            ElMessage.error('加载用户详情失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // 打开编辑余额对话框
+        openEditBalance(user) {
+          this.editBalanceForm = {
+            userId: user._id,
+            currentBalance: user.balance || 0,
+            newBalance: user.balance || 0,
+            reason: ''
+          };
+          this.editBalanceVisible = true;
+        },
+
+        // 提交余额调整
+        async submitBalanceEdit() {
+          if (!this.editBalanceForm.reason) {
+            ElMessage.error('请填写调整原因');
+            return;
+          }
+
+          if (this.editBalanceForm.newBalance < 0) {
+            ElMessage.error('余额不能为负数');
+            return;
+          }
+
+          try {
+            this.loading = true;
+            const res = await this.callAdminApi({
+              action: 'updateUserBalance',
+              data: {
+                userId: this.editBalanceForm.userId,
+                newBalance: this.editBalanceForm.newBalance,
+                reason: this.editBalanceForm.reason
+              }
+            });
+
+            if (res.code === 200) {
+              ElMessage.success('余额调整成功');
+              this.editBalanceVisible = false;
+              await this.loadUsers();
+              if (this.userDetailVisible) {
+                await this.viewUserDetail({ _id: this.editBalanceForm.userId });
+              }
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('调整余额失败:', error);
+            ElMessage.error('调整余额失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // ==================== 操作日志相关方法 ====================
+
+        // 加载操作日志
+        async loadAdminLogs() {
+          this.loading = true;
+          try {
+            const data = {
+              limit: 100,
+              skip: 0
+            };
+
+            if (this.adminLogsFilter.dateRange && this.adminLogsFilter.dateRange.length === 2) {
+              data.startDate = this.adminLogsFilter.dateRange[0];
+              data.endDate = this.adminLogsFilter.dateRange[1];
+            }
+
+            if (this.adminLogsFilter.staffId) {
+              data.staffId = this.adminLogsFilter.staffId;
+            }
+
+            if (this.adminLogsFilter.action) {
+              data.action = this.adminLogsFilter.action;
+            }
+
+            if (this.adminLogsFilter.module) {
+              data.module = this.adminLogsFilter.module;
+            }
+
+            const res = await this.callAdminApi({
+              action: 'queryAdminLogs',
+              data: data
+            });
+
+            if (res.code === 200) {
+              this.adminLogsData = res.data;
+              this.adminLogsTotal = res.total;
+            } else {
+              throw new Error(res.message);
+            }
+          } catch (error) {
+            console.error('加载操作日志失败:', error);
+            ElMessage.error('加载操作日志失败: ' + error.message);
+          }
+          this.loading = false;
+        },
+
+        // 格式化操作类型
+        formatActionType(action) {
+          const actionMap = {
+            'add': '新增',
+            'update': '修改',
+            'delete': '删除',
+            'query': '查询'
+          };
+          return actionMap[action] || action;
+        },
+
+        // 获取操作类型标签
+        getActionTypeTag(action) {
+          const tagMap = {
+            'add': 'success',
+            'update': 'warning',
+            'delete': 'danger',
+            'query': 'info'
+          };
+          return tagMap[action] || '';
         },
 
         // 统计表格合计行
@@ -1686,6 +2066,48 @@
           if (isNaN(d.getTime())) return '-';
           const pad = n => String(n).padStart(2, '0');
           return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        },
+
+        // 格式化余额类型
+        formatBalanceType(type) {
+          const typeMap = {
+            'recharge': '充值',
+            'payment': '支付',
+            'refund': '退款',
+            'adjust': '调整'
+          };
+          return typeMap[type] || type;
+        },
+
+        // 获取余额类型标签颜色
+        getBalanceTypeTag(type) {
+          const tagMap = {
+            'recharge': 'success',
+            'payment': 'warning',
+            'refund': 'info',
+            'adjust': 'danger'
+          };
+          return tagMap[type] || '';
+        },
+
+        // 格式化操作类型
+        formatActionType(action) {
+          const actionMap = {
+            'add': '新增',
+            'update': '修改',
+            'delete': '删除'
+          };
+          return actionMap[action] || action;
+        },
+
+        // 获取操作类型标签颜色
+        getActionTypeTag(action) {
+          const tagMap = {
+            'add': 'success',
+            'update': 'warning',
+            'delete': 'danger'
+          };
+          return tagMap[action] || '';
         },
 
         // 加载数据
