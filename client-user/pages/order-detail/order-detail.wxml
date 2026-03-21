@@ -131,6 +131,17 @@
 
     <!-- 操作按钮 -->
     <view class="action-bar">
+      <!-- 分享按钮（所有状态都可分享） -->
+      <van-button
+        type="default"
+        size="large"
+        round
+        bindtap="generateShareCode"
+        custom-class="share-btn"
+      >
+        分享订单
+      </van-button>
+
       <!-- 待支付订单：取消订单 + 去支付 -->
       <van-button
         wx:if="{{order.status === 'pending'}}"
@@ -166,4 +177,50 @@
       </van-button>
     </view>
   </view>
+
+  <!-- 分享弹窗 -->
+  <van-popup
+    show="{{shareModalVisible}}"
+    round
+    position="bottom"
+    custom-style="padding: 40rpx;"
+    bind:close="closeShareModal"
+  >
+    <view class="share-modal">
+      <view class="share-modal-title">分享订单</view>
+      <view class="share-modal-subtitle">订单号：{{shareOrderNo}}</view>
+
+      <!-- 二维码 -->
+      <view class="share-qrcode-wrapper">
+        <image
+          wx:if="{{shareQrCodeImage}}"
+          src="{{shareQrCodeImage}}"
+          class="share-qrcode-image"
+          mode="widthFix"
+          bindtap="previewShareCode"
+        />
+        <view wx:else class="share-qrcode-loading">
+          <van-loading size="80rpx" type="spinner">生成中...</van-loading>
+        </view>
+      </view>
+
+      <view class="share-modal-tip">截图保存或复制链接分享给好友</view>
+
+      <!-- 操作按钮 -->
+      <view class="share-modal-actions">
+        <van-button type="default" size="small" bindtap="saveShareCode">
+          保存二维码
+        </van-button>
+        <van-button type="primary" size="small" bindtap="copyShareLink">
+          复制链接
+        </van-button>
+      </view>
+
+      <!-- 链接 -->
+      <view class="share-link-wrapper">
+        <text class="share-link-label">链接：</text>
+        <text class="share-link-text">{{shareLink}}</text>
+      </view>
+    </view>
+  </van-popup>
 </view>

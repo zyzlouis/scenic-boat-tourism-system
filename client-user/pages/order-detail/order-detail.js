@@ -7,7 +7,12 @@ Page({
     orderId: null,
     order: null,
     loading: true,
-    timer: null  // 计时器ID
+    timer: null,  // 计时器ID
+    // 分享相关
+    shareModalVisible: false,
+    shareQrCodeImage: '',
+    shareLink: '',
+    shareOrderNo: ''
   },
 
   onLoad(options) {
@@ -248,5 +253,206 @@ Page({
   async onPullDownRefresh() {
     await this.loadOrderDetail();
     wx.stopPullDownRefresh();
+  },
+
+  /**
+   * 分享到微信好友
+   */
+  onShareAppMessage(res) {
+    const order = this.data.order;
+    if (!order) return {};
+
+    return {
+      title: `游船订单 ${order.orderNo}`,
+      path: `/pages/order-detail/order-detail?orderId=${order._id}`,
+      imageUrl: order.boatTypeImage || ''
+    };
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline(res) {
+    const order = this.data.order;
+    if (!order) return {};
+
+    return {
+      title: `游船订单 ${order.orderNo} - 翠屏湖景区`,
+      query: `orderId=${order._id}`
+    };
+  },
+
+  /**
+   * 生成分享码
+   */
+  async generateShareCode() {
+    if (!this.data.order) {
+      wx.showToast({ title: '订单加载中...', icon: 'none' });
+      return;
+    }
+
+    wx.showLoading({ title: '生成中...', mask: true });
+
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'generateShareCode',
+        data: {
+          orderId: this.data.orderId
+        }
+      });
+
+      wx.hideLoading();
+
+      if (res.result.code === 200) {
+        this.showShareModal(res.result.data);
+      } else {
+        wx.showToast({
+          title: res.result.message || '生成失败',
+          icon: 'none'
+        });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('生成分享码失败:', error);
+      wx.showToast({
+        title: '生成失败，请重试',
+        icon: 'none'
+      });
+    }
+  },
+
+  /**
+   * 显示分享弹窗
+   */
+  showShareModal(data) {
+    this.setData({
+      shareModalVisible: true,
+      shareQrCodeImage: data.qrCodeImage,
+      shareLink: data.shareLink,
+      shareOrderNo: data.orderNo
+    });
+  },
+
+  /**
+   * 关闭分享弹窗
+   */
+  closeShareModal() {
+    this.setData({
+      shareModalVisible: false
+    });
+  },
+
+  /**
+   * 保存分享码到相册
+   */
+  async saveShareCode() {
+    if (!this.data.shareQrCodeImage) {
+      wx.showToast({ title: '分享码未生成', icon: 'none' });
+      return;
+    }
+
+    wx.showLoading({ title: '保存中...', mask: true });
+
+    try {
+      // 将 base64 图片转换为临时文件
+      const base64Data = this.data.shareQrCodeImage.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = wx.base64ToArrayBuffer(base64Data);
+      const filePath = `${wx.env.USER_DATA_PATH}/share_qrcode_${Date.now()}.png`;
+
+      wx.getFileSystemManager().writeFile({
+        filePath: filePath,
+        data: buffer,
+        encoding: 'binary',
+        success: () => {
+          // 保存到相册
+          wx.saveImageToPhotosAlbum({
+            filePath: filePath,
+            success: () => {
+              wx.hideLoading();
+              wx.showToast({
+                title: '已保存到相册',
+                icon: 'success'
+              });
+            },
+            fail: (err) => {
+              wx.hideLoading();
+              console.error('保存到相册失败:', err);
+              if (err.errMsg.includes('auth deny')) {
+                wx.showToast({
+                  title: '请授权保存到相册',
+                  icon: 'none'
+                });
+              } else {
+                wx.showToast({
+                  title: '保存失败',
+                  icon: 'none'
+                });
+              }
+            }
+          });
+        },
+        fail: (err) => {
+          wx.hideLoading();
+          console.error('写入文件失败:', err);
+          wx.showToast({
+            title: '保存失败',
+            icon: 'none'
+          });
+        }
+      });
+    } catch (error) {
+      wx.hideLoading();
+      console.error('保存分享码失败:', error);
+      wx.showToast({
+        title: '保存失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  /**
+   * 复制分享链接
+   */
+  copyShareLink() {
+    if (!this.data.shareLink) {
+      wx.showToast({ title: '链接未生成', icon: 'none' });
+      return;
+    }
+
+    wx.setClipboardData({
+      data: this.data.shareLink,
+      success: () => {
+        wx.showToast({
+          title: '链接已复制',
+          icon: 'success'
+        });
+      },
+      fail: () => {
+        wx.showToast({
+          title: '复制失败',
+          icon: 'none'
+        });
+      }
+    });
+  },
+
+  /**
+   * 预览分享码图片
+   */
+  previewShareCode() {
+    if (!this.data.shareQrCodeImage) {
+      wx.showToast({ title: '分享码未生成', icon: 'none' });
+      return;
+    }
+
+    wx.previewImage({
+      urls: [this.data.shareQrCodeImage],
+      fail: () => {
+        wx.showToast({
+          title: '预览失败',
+          icon: 'none'
+        });
+      }
+    });
   }
 });
