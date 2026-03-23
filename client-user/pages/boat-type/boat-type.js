@@ -109,22 +109,18 @@ Page({
     const boatType = this.data.boatType
     if (!boatType) return
 
-    // 跳转到首页并传递船型code
-    // 使用 switchTab 跳转到首页
+    // 存储到全局数据（sync方式确保时序）
+    app.globalData.selectedBoatTypeCode = boatType.code
+    app.globalData.selectedBoatTypePricing = this.data.pricing
+
+    // 跳转到首页
     wx.switchTab({
       url: '/pages/index/index',
-      success: () => {
-        // 通过事件或全局状态通知首页选择船型
-        const eventChannel = this.getOpenerEventChannel()
-        if (eventChannel) {
-          eventChannel.emit('selectBoatType', { code: boatType.code })
-        }
-        // 存储到全局数据
-        app.globalData.selectedBoatTypeCode = boatType.code
+      fail: (err) => {
+        console.error('跳转首页失败:', err)
         wx.showToast({
-          title: '已选择船型，请选择时间',
-          icon: 'none',
-          duration: 2000
+          title: '跳转失败',
+          icon: 'none'
         })
       }
     })

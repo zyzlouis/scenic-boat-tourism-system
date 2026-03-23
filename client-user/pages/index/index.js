@@ -22,6 +22,15 @@ Page({
       this.loadBoatTypes();
     }
 
+    // 也检查是否有待处理的船型选择（tabBar页面onLoad只执行一次）
+    this.onLoadBoatTypesReady();
+  },
+
+  /**
+   * 加载船型列表完成后的回调
+   * 检查是否有待处理的船型选择
+   */
+  onLoadBoatTypesReady() {
     // 检查是否有从详情页返回的船型code
     const selectedCode = app.globalData.selectedBoatTypeCode
     if (selectedCode) {
@@ -72,6 +81,9 @@ Page({
         boatTypes: res.data || [],
         loading: false
       });
+
+      // 数据加载完成后检查是否有待处理的船型选择
+      this.onLoadBoatTypesReady();
     } catch (error) {
       console.error('加载船型列表失败:', error);
       this.setData({ loading: false });
