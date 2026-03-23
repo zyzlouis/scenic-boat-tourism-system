@@ -63,8 +63,9 @@
       wx:key="id"
       class="boat-card"
       data-id="{{item.id}}"
+      data-code="{{item.code}}"
       data-type-name="{{item.name}}"
-      bindtap="selectBoatType"
+      bindtap="goToBoatDetail"
     >
       <!-- 船型图片 -->
       <view class="boat-image">

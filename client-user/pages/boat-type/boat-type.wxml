@@ -1,0 +1,82 @@
+<!-- pages/boat-type/boat-type.wxml -->
+<view class="container">
+  <!-- 加载中 -->
+  <view wx:if="{{loading}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#1989fa">加载中...</van-loading>
+  </view>
+
+  <!-- 船型详情 -->
+  <view wx:else class="boat-detail">
+    <!-- 船型图片 -->
+    <view class="boat-image-wrapper">
+      <image
+        wx:if="{{boatType.imageUrl}}"
+        src="{{boatType.imageUrl}}"
+        mode="aspectFill"
+        class="boat-image"
+      />
+      <view wx:else class="boat-image-placeholder">
+        <text>暂无图片</text>
+      </view>
+    </view>
+
+    <!-- 船型基本信息 -->
+    <view class="info-card card">
+      <view class="boat-name">{{boatType.name}}</view>
+      <view class="boat-capacity">最大载客 {{boatType.maxCapacity}} 人</view>
+      <view class="boat-desc">{{boatType.description}}</view>
+    </view>
+
+    <!-- 价格信息 -->
+    <view class="info-card card">
+      <view class="section-title">价格说明</view>
+
+      <!-- 价格方案选择（如果有多个方案） -->
+      <van-tabs wx:if="{{allPricingConfigs.length > 1}}" active="{{ 0 }}" bind:change="onPricingChange">
+        <van-tab wx:for="{{allPricingConfigs}}" wx:key="_id" title="{{item.name}}">
+        </van-tab>
+      </van-tabs>
+
+      <view class="price-list">
+        <view class="price-item">
+          <text class="label">基础票价</text>
+          <text class="value price">¥{{pricing.basePrice}}</text>
+        </view>
+        <view class="price-item">
+          <text class="label">押金</text>
+          <text class="value">¥{{pricing.depositAmount}}</text>
+        </view>
+        <view class="price-item">
+          <text class="label">包含时长</text>
+          <text class="value">{{pricing.includedMinutes}} 分钟</text>
+        </view>
+        <view class="price-item">
+          <text class="label">超时费率</text>
+          <text class="value">¥{{pricing.overtimeRate}}/分钟</text>
+        </view>
+        <view wx:if="{{pricing.capAmount}}" class="price-item">
+          <text class="label">封顶金额</text>
+          <text class="value">¥{{pricing.capAmount}}</text>
+        </view>
+      </view>
+
+      <!-- 总计预估 -->
+      <view class="price-summary">
+        <text class="summary-text">预计费用 = 基础票价 ¥{{pricing.basePrice}} + 超时费</text>
+      </view>
+    </view>
+
+    <!-- 预订按钮 -->
+    <view class="action-bar">
+      <van-button
+        type="primary"
+        size="large"
+        round
+        bindtap="goCreateOrder"
+        custom-class="book-btn"
+      >
+        立即预订
+      </van-button>
+    </view>
+  </view>
+</view>

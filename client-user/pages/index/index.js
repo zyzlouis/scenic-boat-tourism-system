@@ -21,6 +21,20 @@ Page({
       this.loadBannersAndAnnouncements();
       this.loadBoatTypes();
     }
+
+    // 检查是否有从详情页返回的船型code
+    const selectedCode = app.globalData.selectedBoatTypeCode
+    if (selectedCode) {
+      app.globalData.selectedBoatTypeCode = null // 清除标记
+      // 找到对应的船型并创建订单
+      const boatType = this.data.boatTypes.find(bt => bt.code === selectedCode || bt.id === selectedCode)
+      if (boatType) {
+        wx.showToast({ title: '正在创建订单...', icon: 'none', duration: 1500 })
+        setTimeout(() => {
+          this.createOrder(boatType.id)
+        }, 1500)
+      }
+    }
   },
 
   /**
@@ -65,13 +79,20 @@ Page({
   },
 
   /**
-   * 选择船型，创建订单
+   * 跳转到船型详情页
+   */
+  goToBoatDetail(e) {
+    const { code, id } = e.currentTarget.dataset;
+    wx.navigateTo({
+      url: `/pages/boat-type/boat-type?code=${code || id}`
+    });
+  },
+
+  /**
+   * 选择船型，创建订单（保留原有功能）
    */
   async selectBoatType(e) {
     const { id } = e.currentTarget.dataset;
-
-    // 云开发会自动获取用户openid，无需手动登录
-    // 直接创建订单
     this.createOrder(id);
   },
 
