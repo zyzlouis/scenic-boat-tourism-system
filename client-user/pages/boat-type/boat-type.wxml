@@ -66,14 +66,24 @@
       </view>
     </view>
 
-    <!-- 预订按钮 -->
+    <!-- 底部操作栏 -->
     <view class="action-bar">
       <van-button
         type="primary"
         size="large"
         round
+        bindtap="generateQrCode"
+        custom-class="book-btn"
+      >
+        分享二维码
+      </van-button>
+      <van-button
+        type="info"
+        size="large"
+        round
         bindtap="goCreateOrder"
         custom-class="book-btn"
+        style="margin-left: 20rpx;"
       >
         立即预订
       </van-button>

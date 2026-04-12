@@ -33,7 +33,7 @@ function generateVerificationCode() {
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
-  const { boatTypeId } = event
+  const { boatTypeId, pricingConfigId } = event
 
   if (!boatTypeId) {
     return {
@@ -63,12 +63,20 @@ exports.main = async (event, context) => {
     const boatType = boatTypeList[0]
 
     // 2. 查询价格配置
+    let pricingQuery = {
+      boatTypeCode: boatType.code,
+      enabled: true  // CMS规范
+    }
+
+    // 如果指定了价格配置ID，直接使用；否则使用默认价格
+    if (pricingConfigId) {
+      pricingQuery._id = pricingConfigId
+    } else {
+      pricingQuery.isDefault = true
+    }
+
     const { data: pricingList } = await db.collection('pricingConfigs')
-      .where({
-        boatTypeCode: boatType.code,
-        enabled: true,  // CMS规范
-        isDefault: true  // 使用默认价格
-      })
+      .where(pricingQuery)
       .limit(1)
       .get()
 

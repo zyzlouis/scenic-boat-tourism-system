@@ -103,27 +103,55 @@ Page({
   },
 
   /**
-   * 立即预订
+   * 立即预订 - 直接创建订单
    */
-  goCreateOrder() {
+  async goCreateOrder() {
     const boatType = this.data.boatType
-    if (!boatType) return
+    const pricing = this.data.pricing
 
-    // 存储到全局数据（sync方式确保时序）
-    app.globalData.selectedBoatTypeCode = boatType.code
-    app.globalData.selectedBoatTypePricing = this.data.pricing
+    if (!boatType) {
+      wx.showToast({ title: '船型信息加载失败', icon: 'none' })
+      return
+    }
 
-    // 跳转到首页
-    wx.switchTab({
-      url: '/pages/index/index',
-      fail: (err) => {
-        console.error('跳转首页失败:', err)
+    if (!pricing) {
+      wx.showToast({ title: '价格方案加载失败', icon: 'none' })
+      return
+    }
+
+    try {
+      wx.showLoading({ title: '创建订单中...' })
+
+      // 直接调用创建订单，使用当前选中的价格方案
+      const res = await wx.cloud.callFunction({
+        name: 'createOrder',
+        data: {
+          boatTypeId: boatType.id,
+          pricingConfigId: pricing._id  // 传入选中的价格方案
+        }
+      })
+
+      wx.hideLoading()
+
+      if (res.result.code === 200) {
+        // 跳转到支付页面
+        wx.navigateTo({
+          url: `/pages/payment/payment?orderId=${res.result.data.orderId}`
+        })
+      } else {
         wx.showToast({
-          title: '跳转失败',
+          title: res.result.message || '创建订单失败',
           icon: 'none'
         })
       }
-    })
+    } catch (error) {
+      wx.hideLoading()
+      console.error('创建订单失败:', error)
+      wx.showToast({
+        title: '创建订单失败，请重试',
+        icon: 'none'
+      })
+    }
   },
 
   /**
@@ -134,6 +162,50 @@ Page({
     const config = this.data.allPricingConfigs[index]
     if (config) {
       this.setData({ pricing: config })
+    }
+  },
+
+  /**
+   * 生成分享二维码
+   */
+  async generateQrCode() {
+    const boatType = this.data.boatType
+    if (!boatType) return
+
+    try {
+      wx.showLoading({ title: '生成中...' })
+
+      const res = await wx.cloud.callFunction({
+        name: 'generateShareCode',
+        data: {
+          type: 'boat',
+          code: boatType.code
+        }
+      })
+
+      wx.hideLoading()
+
+      if (res.result.code === 200) {
+        // 显示二维码
+        wx.previewImage({
+          urls: [res.result.data.qrCodeImage],
+          fail: () => {
+            wx.showToast({ title: '预览失败', icon: 'none' })
+          }
+        })
+      } else {
+        wx.showToast({
+          title: res.result.message || '生成失败',
+          icon: 'none'
+        })
+      }
+    } catch (error) {
+      wx.hideLoading()
+      console.error('生成分享码失败:', error)
+      wx.showToast({
+        title: '生成分享码失败',
+        icon: 'none'
+      })
     }
   }
 })

@@ -12,7 +12,8 @@
     "pages/staff/login/login",
     "pages/staff/scan/scan",
     "pages/staff/search/search",
-    "pages/staff/orders/orders"
+    "pages/staff/orders/orders",
+    "pages/share-test/share-test"
   ],
   "window": {
     "backgroundTextStyle": "light",
