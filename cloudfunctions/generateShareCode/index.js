@@ -198,7 +198,7 @@ exports.main = async (event, context) => {
 
     // 生成小程序码
     // env_version: release=正式版, trial=体验版, develop=开发版
-    const result = await generateWxACode(accessToken, scene, pagePath, width || 430, 'trial')
+    const result = await generateWxACode(accessToken, scene, pagePath, width || 430, 'release')
 
     // 将 buffer 转换为 base64
     const base64 = result.buffer.toString('base64')
