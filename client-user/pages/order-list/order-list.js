@@ -100,5 +100,24 @@ Page({
       });
       await this.loadOrderList();
     }
+  },
+
+  /**
+   * 分享到微信好友
+   */
+  onShareAppMessage() {
+    return {
+      title: '翠屏湖景区游船 - 在线预约',
+      path: '/pages/index/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline() {
+    return {
+      title: '翠屏湖景区游船 - 在线预约'
+    }
   }
 });

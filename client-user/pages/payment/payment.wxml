@@ -65,7 +65,7 @@
   </view>
 
   <!-- 支付金额 -->
-  <view wx:if="{{order}}" class="payment-amount">
+  <view wx:if="{{order && order.pricing}}" class="payment-amount">
     <view class="amount-row">
       <text class="amount-label">基础票价：</text>
       <text class="amount-value">¥{{format.formatMoney(order.pricing.basePrice)}}</text>

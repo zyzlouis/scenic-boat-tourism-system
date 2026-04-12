@@ -193,7 +193,7 @@ Page({
   async applyRefund() {
     const result = await wx.showModal({
       title: '确认申请退款？',
-      content: `退款金额：¥${this.data.order.totalAmount.toFixed(2)}\n退款将在1-3个工作日内原路返回您的支付账户`,
+      content: `退款金额：¥${Number(this.data.order.totalAmount || 0).toFixed(2)}\n退款将在1-3个工作日内原路返回您的支付账户`,
       confirmText: '确认退款',
       cancelText: '我再想想',
       confirmColor: '#1989fa'

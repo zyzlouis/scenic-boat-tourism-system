@@ -219,7 +219,7 @@ Page({
       if (res.result.success) {
         wx.showModal({
           title: '支付成功',
-          content: `核销码：${res.result.verificationCode}\n剩余余额：¥${res.result.balance.toFixed(2)}\n\n请前往码头出示核销码发船`,
+          content: `核销码：${res.result.verificationCode}\n剩余余额：¥${Number(res.result.balance || 0).toFixed(2)}\n\n请前往码头出示核销码发船`,
           showCancel: false,
           success: () => {
             // 跳转到订单详情

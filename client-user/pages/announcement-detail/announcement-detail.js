@@ -29,6 +29,28 @@ Page({
   },
 
   /**
+   * 分享到微信好友
+   */
+  onShareAppMessage() {
+    const announcement = this.data.announcement
+    return {
+      title: announcement ? `${announcement.title} - 翠屏湖景区` : '翠屏湖景区公告',
+      path: announcement ? `/pages/announcement-detail/announcement-detail?id=${announcement._id}` : '/pages/index/index'
+    }
+  },
+
+  /**
+   * 分享到朋友圈
+   */
+  onShareTimeline() {
+    const announcement = this.data.announcement
+    return {
+      title: announcement ? `${announcement.title} - 翠屏湖景区` : '翠屏湖景区公告',
+      query: announcement ? `id=${announcement._id}` : ''
+    }
+  },
+
+  /**
    * 加载公告详情
    */
   async loadAnnouncement(id) {
