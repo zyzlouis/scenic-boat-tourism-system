@@ -4,6 +4,7 @@ Page({
   data: {
     product: null,
     quantity: 1,
+    totalPrice: '0.00',
     loading: true
   },
 
@@ -22,7 +23,11 @@ Page({
         const product = (project.products || []).find(p => p._id === productId);
         if (product) {
           product.projectName = project.name;
-          this.setData({ product, loading: false });
+          this.setData({
+            product,
+            loading: false,
+            totalPrice: (product.price * this.data.quantity).toFixed(2)
+          });
           return;
         }
       }
@@ -35,7 +40,11 @@ Page({
   },
 
   onQuantityChange(e) {
-    this.setData({ quantity: e.detail });
+    const quantity = e.detail;
+    this.setData({
+      quantity,
+      totalPrice: (this.data.product.price * quantity).toFixed(2)
+    });
   },
 
   async handleBuy() {
