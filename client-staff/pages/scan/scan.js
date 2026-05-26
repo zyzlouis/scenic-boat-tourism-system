@@ -79,8 +79,10 @@ Page({
         lastScanResult: data
       });
 
-      // 判断是发船还是收船
-      if (data.action === 'start') {
+      // 判断操作类型
+      if (data.action === 'verify_product') {
+        this.showProductVerify(data);
+      } else if (data.action === 'start') {
         // 发船 - 需要输入船号
         this.showInputBoatNumber(data);
       } else if (data.action === 'end') {
@@ -231,6 +233,50 @@ ${data.overtimeFee > 0 ? `超时费用：¥${data.overtimeFee}` : ''}
       wx.hideLoading();
       util.playErrorSound();
       console.error('收船失败:', error);
+    }
+  },
+
+  showProductVerify(data) {
+    const deadlineStr = data.verificationDeadline
+      ? `\n有效期至：${util.formatTime(data.verificationDeadline)}`
+      : '';
+
+    wx.showModal({
+      title: '🎫 商品核销确认',
+      content: `商品：${data.productName}\n数量：${data.quantity}\n金额：¥${Number(data.totalAmount).toFixed(2)}${deadlineStr}`,
+      confirmText: '确认核销',
+      confirmColor: '#07c160',
+      success: (res) => {
+        if (res.confirm) {
+          this.doVerifyProduct(data.orderId);
+        }
+      }
+    });
+  },
+
+  async doVerifyProduct(orderId) {
+    try {
+      wx.showLoading({ title: '核销中...' });
+      const staffInfo = app.getStaffInfo();
+      const res = await wx.cloud.callFunction({
+        name: 'verifyProduct',
+        data: { orderId, staffId: staffInfo?._id || staffInfo?.id }
+      });
+      wx.hideLoading();
+
+      if (res.result.code === 200) {
+        util.playSuccessSound();
+        wx.showToast({ title: '✅ 核销成功', icon: 'success', duration: 2000 });
+        this.setData({ lastScanResult: null });
+      } else {
+        util.playErrorSound();
+        wx.showToast({ title: res.result.message || '核销失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      util.playErrorSound();
+      console.error('商品核销失败:', error);
+      wx.showToast({ title: '核销失败', icon: 'none' });
     }
   },
 
