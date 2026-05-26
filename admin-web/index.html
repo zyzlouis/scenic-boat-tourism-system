@@ -289,7 +289,13 @@
                   <option value="">全部船型</option>
                   <option v-for="bt in boatTypesData" :key="bt._id" :value="bt.code || bt._id">{{ bt.name }}</option>
                 </select>
+                <el-select v-model="orderFilter.orderType" placeholder="订单类型" clearable @change="loadOrders" style="width:140px">
+                  <el-option label="全部" value="" />
+                  <el-option label="游船订单" value="boat" />
+                  <el-option label="商品订单" value="product" />
+                </el-select>
                 <el-button type="primary" @click="loadOrders">查询</el-button>
+                <el-button type="success" @click="exportOrders">导出Excel</el-button>
                 <el-popover placement="bottom-end" :width="200" trigger="click">
                   <template #reference>
                     <el-button>列设置</el-button>
@@ -948,6 +954,108 @@
             </div>
           </div>
 
+          <!-- 项目管理 -->
+          <div v-if="currentMenu === 'projects'">
+            <div class="page-header">
+              <h2 class="page-title">项目管理</h2>
+              <el-button type="primary" @click="showProjectDialog()">新增项目</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="projectsData" stripe>
+                <el-table-column prop="name" label="项目名称" />
+                <el-table-column prop="description" label="描述" />
+                <el-table-column label="营业时间" width="160">
+                  <template #default="scope">{{scope.row.openTime || ''}} - {{scope.row.closeTime || ''}}</template>
+                </el-table-column>
+                <el-table-column label="状态" width="100">
+                  <template #default="scope">
+                    <el-switch v-model="scope.row.enabled" @change="toggleProjectEnabled(scope.row)" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="160">
+                  <template #default="scope">
+                    <el-button size="small" @click="showProjectDialog(scope.row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteProject(scope.row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <el-dialog :title="editingProjectId ? '编辑项目' : '新增项目'" v-model="projectDialogVisible" width="500px">
+              <el-form :model="projectForm" label-width="100px">
+                <el-form-item label="项目名称"><el-input v-model="projectForm.name" placeholder="如：水上城堡" /></el-form-item>
+                <el-form-item label="描述"><el-input v-model="projectForm.description" type="textarea" :rows="2" /></el-form-item>
+                <el-form-item label="图片URL"><el-input v-model="projectForm.imageUrl" placeholder="可选" /></el-form-item>
+                <el-form-item label="开始时间"><el-input v-model="projectForm.openTime" placeholder="09:00" /></el-form-item>
+                <el-form-item label="结束时间"><el-input v-model="projectForm.closeTime" placeholder="19:00" /></el-form-item>
+              </el-form>
+              <template #footer>
+                <el-button @click="projectDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveProject">保存</el-button>
+              </template>
+            </el-dialog>
+          </div>
+
+          <!-- 商品管理 -->
+          <div v-if="currentMenu === 'productsMgmt'">
+            <div class="page-header">
+              <h2 class="page-title">商品管理</h2>
+              <div style="display:flex;gap:10px;">
+                <el-select v-model="productFilterProjectId" placeholder="选择项目" clearable @change="loadProductsMgmt" style="width:200px">
+                  <el-option v-for="p in projectsData" :key="p._id" :label="p.name" :value="p._id" />
+                </el-select>
+                <el-button type="primary" @click="showProductDialog()">新增商品</el-button>
+              </div>
+            </div>
+            <div class="data-table">
+              <el-table :data="productsMgmtData" stripe>
+                <el-table-column prop="name" label="商品名称" />
+                <el-table-column label="价格" width="100">
+                  <template #default="scope">¥{{scope.row.price}}</template>
+                </el-table-column>
+                <el-table-column label="库存" width="100">
+                  <template #default="scope">{{scope.row.stock === 0 ? '不限' : scope.row.stock}}</template>
+                </el-table-column>
+                <el-table-column prop="soldCount" label="已售" width="80" />
+                <el-table-column label="需核销" width="80">
+                  <template #default="scope">
+                    <el-tag :type="scope.row.needVerification ? 'primary' : 'info'" size="small">{{scope.row.needVerification ? '是' : '否'}}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="上下架" width="80">
+                  <template #default="scope">
+                    <el-switch v-model="scope.row.enabled" @change="toggleProductEnabled(scope.row)" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="160">
+                  <template #default="scope">
+                    <el-button size="small" @click="showProductDialog(scope.row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteProduct(scope.row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <el-dialog :title="editingProductId ? '编辑商品' : '新增商品'" v-model="productDialogVisible" width="500px">
+              <el-form :model="productForm" label-width="110px">
+                <el-form-item label="所属项目">
+                  <el-select v-model="productForm.projectId" placeholder="选择项目" style="width:100%">
+                    <el-option v-for="p in projectsData" :key="p._id" :label="p.name" :value="p._id" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="商品名称"><el-input v-model="productForm.name" placeholder="如：单人儿童票" /></el-form-item>
+                <el-form-item label="描述"><el-input v-model="productForm.description" type="textarea" :rows="2" /></el-form-item>
+                <el-form-item label="价格"><el-input-number v-model="productForm.price" :min="0" :precision="1" :step="1" /></el-form-item>
+                <el-form-item label="需要核销"><el-switch v-model="productForm.needVerification" /></el-form-item>
+                <el-form-item v-if="productForm.needVerification" label="核销有效天数"><el-input-number v-model="productForm.verificationDays" :min="1" :max="365" /></el-form-item>
+                <el-form-item label="库存(0=不限)"><el-input-number v-model="productForm.stock" :min="0" /></el-form-item>
+                <el-form-item label="图片URL"><el-input v-model="productForm.imageUrl" placeholder="可选" /></el-form-item>
+              </el-form>
+              <template #footer>
+                <el-button @click="productDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveProduct">保存</el-button>
+              </template>
+            </el-dialog>
+          </div>
+
           <!-- 系统设置 -->
           <div v-if="currentMenu === 'settings'">
             <div class="page-header">
@@ -1368,6 +1476,8 @@
     </el-dialog>
   </div>
 
+  <!-- SheetJS (Excel导出) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- Vue 3 (本地) -->
   <script src="lib/vue.min.js"></script>
   <!-- Element Plus (本地) -->
@@ -1405,6 +1515,8 @@
             { key: 'adminLogs', label: '操作日志', icon: '📝' },
             { key: 'boatTypes', label: '船型管理', icon: '🚤' },
             { key: 'boats', label: '船只管理', icon: '⛵' },
+            { key: 'projects', label: '项目管理', icon: '🏰' },
+            { key: 'productsMgmt', label: '商品管理', icon: '🎫' },
             { key: 'pricingConfigs', label: '价格设置', icon: '💰' },
             { key: 'recharge_plans', label: '充值套餐', icon: '🎁' },
             { key: 'staff', label: '员工管理', icon: '👥' },
@@ -1420,7 +1532,8 @@
           orderFilter: {
             dateRange: [],
             status: '',
-            boatTypeCode: ''
+            boatTypeCode: '',
+            orderType: ''
           },
           statsData: {
             year: new Date().getFullYear(),
@@ -1439,6 +1552,21 @@
           rechargePlansData: [],
           settingsForm: {},
           settingsSaving: false,
+
+          // 项目管理
+          projectsData: [],
+          projectsTotal: 0,
+          projectDialogVisible: false,
+          projectForm: { name: '', description: '', imageUrl: '', openTime: '09:00', closeTime: '19:00' },
+          editingProjectId: null,
+
+          // 商品管理
+          productsMgmtData: [],
+          productsMgmtTotal: 0,
+          productDialogVisible: false,
+          productForm: { projectId: '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0 },
+          editingProductId: null,
+          productFilterProjectId: '',
 
           // 余额流水相关
           balanceLogsData: [],
@@ -1662,6 +1790,11 @@
             await this.loadAdminLogs();
           } else if (key === 'settings') {
             await this.loadSettings();
+          } else if (key === 'projects') {
+            await this.loadProjects();
+          } else if (key === 'productsMgmt') {
+            await this.loadProjects();
+            await this.loadProductsMgmt();
           } else {
             await this.loadData();
           }
@@ -1715,6 +1848,9 @@
             }
             if (this.orderFilter.boatTypeCode) {
               params.data.boatTypeCode = this.orderFilter.boatTypeCode;
+            }
+            if (this.orderFilter.orderType) {
+              params.data.orderType = this.orderFilter.orderType;
             }
             const res = await this.callAdminApi(params);
             if (res.code === 200) {
@@ -2523,6 +2659,117 @@
         isColVisible(key) {
           const col = this.orderColumns.find(c => c.key === key);
           return col ? col.visible : true;
+        },
+
+        // === 项目管理 ===
+        async loadProjects() {
+          const res = await this.callAdminApi({ action: 'query', collection: 'projects', data: { orderBy: { field: 'sort', direction: 'asc' } } });
+          if (res.code === 200) { this.projectsData = res.data; this.projectsTotal = res.total; }
+        },
+        showProjectDialog(row) {
+          if (row) {
+            this.editingProjectId = row._id;
+            this.projectForm = { name: row.name, description: row.description || '', imageUrl: row.imageUrl || '', openTime: row.openTime || '09:00', closeTime: row.closeTime || '19:00' };
+          } else {
+            this.editingProjectId = null;
+            this.projectForm = { name: '', description: '', imageUrl: '', openTime: '09:00', closeTime: '19:00' };
+          }
+          this.projectDialogVisible = true;
+        },
+        async saveProject() {
+          const data = { ...this.projectForm, sort: Date.now(), enabled: true };
+          if (this.editingProjectId) {
+            await this.callAdminApi({ action: 'update', collection: 'projects', docId: this.editingProjectId, data });
+          } else {
+            await this.callAdminApi({ action: 'add', collection: 'projects', data });
+          }
+          this.projectDialogVisible = false;
+          this.loadProjects();
+        },
+        async toggleProjectEnabled(row) {
+          await this.callAdminApi({ action: 'update', collection: 'projects', docId: row._id, data: { enabled: row.enabled } });
+        },
+        async deleteProject(row) {
+          try { await ElMessageBox.confirm('确定删除该项目？', '警告', { type: 'warning' }); } catch { return; }
+          await this.callAdminApi({ action: 'remove', collection: 'projects', docId: row._id });
+          this.loadProjects();
+        },
+
+        // === 商品管理 ===
+        async loadProductsMgmt() {
+          const where = {};
+          if (this.productFilterProjectId) { where.projectId = this.productFilterProjectId; }
+          const res = await this.callAdminApi({ action: 'query', collection: 'products', data: { where, orderBy: { field: 'sort', direction: 'asc' } } });
+          if (res.code === 200) { this.productsMgmtData = res.data; this.productsMgmtTotal = res.total; }
+        },
+        showProductDialog(row) {
+          if (row) {
+            this.editingProductId = row._id;
+            this.productForm = { projectId: row.projectId, name: row.name, description: row.description || '', imageUrl: row.imageUrl || '', price: row.price, needVerification: row.needVerification, verificationDays: row.verificationDays || 15, stock: row.stock || 0 };
+          } else {
+            this.editingProductId = null;
+            this.productForm = { projectId: this.productFilterProjectId || '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0 };
+          }
+          this.productDialogVisible = true;
+        },
+        async saveProduct() {
+          const data = { ...this.productForm, sort: Date.now(), enabled: true, soldCount: 0 };
+          if (this.editingProductId) {
+            delete data.soldCount;
+            await this.callAdminApi({ action: 'update', collection: 'products', docId: this.editingProductId, data });
+          } else {
+            await this.callAdminApi({ action: 'add', collection: 'products', data });
+          }
+          this.productDialogVisible = false;
+          this.loadProductsMgmt();
+        },
+        async toggleProductEnabled(row) {
+          await this.callAdminApi({ action: 'update', collection: 'products', docId: row._id, data: { enabled: row.enabled } });
+        },
+        async deleteProduct(row) {
+          try { await ElMessageBox.confirm('确定删除该商品？', '警告', { type: 'warning' }); } catch { return; }
+          await this.callAdminApi({ action: 'remove', collection: 'products', docId: row._id });
+          this.loadProductsMgmt();
+        },
+
+        // === 订单导出 ===
+        async exportOrders() {
+          ElMessage.info('正在导出，请稍候...');
+          let allOrders = [];
+          let skip = 0;
+          let hasMore = true;
+          while (hasMore) {
+            const queryData = { limit: 1000, skip };
+            if (this.orderFilter.dateRange && this.orderFilter.dateRange.length === 2) {
+              queryData.startDate = this.orderFilter.dateRange[0] + 'T00:00:00+08:00';
+              queryData.endDate = this.orderFilter.dateRange[1] + 'T23:59:59+08:00';
+            }
+            if (this.orderFilter.status) queryData.status = this.orderFilter.status;
+            if (this.orderFilter.boatTypeCode) queryData.boatTypeCode = this.orderFilter.boatTypeCode;
+            if (this.orderFilter.orderType) queryData.orderType = this.orderFilter.orderType;
+            const res = await this.callAdminApi({ action: 'queryOrders', data: queryData });
+            if (res.code === 200) { allOrders = allOrders.concat(res.data); hasMore = res.data.length === 1000; skip += 1000; }
+            else { hasMore = false; }
+          }
+          if (allOrders.length === 0) { ElMessage.warning('没有可导出的订单'); return; }
+          const rows = allOrders.map(o => ({
+            '订单号': o.orderNo,
+            '类型': o.orderType === 'product' ? '商品' : '游船',
+            '名称': o.orderType === 'product' ? (o.productName || '') : (o.boatType ? o.boatType.name : ''),
+            '船号': o.boat ? (o.boat.number || '') : '',
+            '数量': o.quantity || 1,
+            '订单金额': o.totalAmount,
+            '结算金额': o.settlement ? (o.settlement.finalAmount || '') : '',
+            '退款金额': o.refundAmount || '',
+            '支付方式': o.payment ? (o.payment.method === 'balance' ? '余额' : '微信') : '',
+            '状态': { pending: '待支付', paid: '待核销', timing: '计时中', completed: '已完成', refunded: '已退款' }[o.status] || o.status,
+            '创建时间': o.createdAt ? new Date(o.createdAt).toLocaleString('zh-CN') : ''
+          }));
+          const ws = XLSX.utils.json_to_sheet(rows);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, '订单数据');
+          XLSX.writeFile(wb, `订单导出_${new Date().toISOString().slice(0, 10)}.xlsx`);
+          ElMessage.success(`成功导出 ${allOrders.length} 条订单`);
         },
 
         // 将 cloud:// 地址转换为 HTTP 临时链接
