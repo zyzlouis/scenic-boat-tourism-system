@@ -8,26 +8,30 @@ const db = cloud.database()
 
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
-  const { page = 1, pageSize = 10 } = event
+  const { page = 1, pageSize = 10, orderType } = event
 
   try {
     // 查询用户的订单列表（按创建时间倒序）
     const skip = (page - 1) * pageSize
 
-    // 先获取总数
+    const whereCondition = {
+      _openid: wxContext.OPENID,
+      isDeleted: false
+    }
+
+    if (orderType === 'product') {
+      whereCondition.orderType = 'product'
+    } else if (orderType === 'boat') {
+      const _ = db.command
+      whereCondition.orderType = _.neq('product')
+    }
+
     const { total } = await db.collection('orders')
-      .where({
-        _openid: wxContext.OPENID,
-        isDeleted: false
-      })
+      .where(whereCondition)
       .count()
 
-    // 再获取数据
     const { data: orderList } = await db.collection('orders')
-      .where({
-        _openid: wxContext.OPENID,
-        isDeleted: false
-      })
+      .where(whereCondition)
       .orderBy('createdAt', 'desc')
       .skip(skip)
       .limit(pageSize)
@@ -37,13 +41,20 @@ exports.main = async (event, context) => {
     const result = orderList.map(order => ({
       orderId: order._id,
       orderNo: order.orderNo,
-      boatTypeName: order.boatType.name,
-      boatNumber: order.boat.number,
+      orderType: order.orderType || 'boat',
+      boatTypeName: order.boatType ? order.boatType.name : '',
+      boatNumber: order.boat ? order.boat.number : '',
+      productName: order.productName || '',
+      projectName: order.projectName || '',
+      quantity: order.quantity || 0,
+      needVerification: order.needVerification || false,
+      verificationDeadline: order.verificationDeadline || null,
+      verifiedAt: order.verifiedAt || null,
       totalAmount: order.totalAmount,
       status: order.status,
       createdAt: order.createdAt,
-      finalAmount: order.settlement?.finalAmount,
-      refundAmount: order.settlement?.refundAmount
+      finalAmount: order.settlement ? order.settlement.finalAmount : null,
+      refundAmount: order.settlement ? order.settlement.refundAmount : null
     }))
 
     return {

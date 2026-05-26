@@ -84,24 +84,38 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 5. 生成核销码
-    const verificationCode = generateVerificationCode()
+    // 5. 根据订单类型处理
+    const isProductOrder = order.orderNo && order.orderNo.startsWith('PROD')
+
+    let updateData = {
+      'payment.transactionId': transactionId || 'CALLBACK',
+      'payment.paidAmount': Number(cashFee || totalFee) / 100 || 0,
+      'payment.paidAt': paidAtDate,
+      updatedAt: new Date()
+    }
+
+    if (isProductOrder && !order.needVerification) {
+      updateData.status = 'completed'
+      updateData.completedAt = new Date()
+    } else {
+      const verificationCode = generateVerificationCode()
+      updateData.status = 'paid'
+      updateData.verificationCode = verificationCode
+      console.log('🔑 核销码:', verificationCode)
+    }
+
+    if (isProductOrder && order.needVerification && !order.verificationDeadline) {
+      const days = order.verificationDays || 15
+      updateData.verificationDeadline = new Date(paidAtDate.getTime() + days * 24 * 60 * 60 * 1000)
+    }
 
     // 6. 更新订单状态
     await db.collection('orders').doc(order._id).update({
-      data: {
-        status: 'paid',
-        verificationCode: verificationCode,
-        'payment.transactionId': transactionId || 'CALLBACK',
-        'payment.paidAmount': Number(cashFee || totalFee) / 100 || 0,  // 转换为元
-        'payment.paidAt': paidAtDate,
-        updatedAt: new Date()
-      }
+      data: updateData
     })
 
     console.log('✅ 支付回调处理完成')
     console.log('📦 订单ID:', order._id)
-    console.log('🔑 核销码:', verificationCode)
     console.log('💰 支付金额:', Number(cashFee || totalFee) / 100, '元')
 
     // 7. 返回成功响应（微信要求必须返回 errcode: 0）

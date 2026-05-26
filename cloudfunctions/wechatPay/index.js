@@ -59,10 +59,15 @@ exports.main = async (event, context) => {
     }
 
     // 3. 生成商户订单号（使用订单ID + 时间戳确保唯一性）
-    const outTradeNo = `BOAT${Date.now()}${Math.floor(Math.random() * 1000)}`
+    const isProductOrder = order.orderType === 'product'
+    const outTradeNo = isProductOrder
+      ? `PROD${Date.now()}${Math.floor(Math.random() * 1000)}`
+      : `BOAT${Date.now()}${Math.floor(Math.random() * 1000)}`
 
     // 4. 构建商品描述
-    const body = `${order.boatType.name}-${order.duration}小时`
+    const body = isProductOrder
+      ? `${order.productName}x${order.quantity}`
+      : `${order.boatType ? order.boatType.name : '游船'}-游船租赁`
 
     // 5. 调用微信支付统一下单
     const paymentResult = await cloud.cloudPay.unifiedOrder({

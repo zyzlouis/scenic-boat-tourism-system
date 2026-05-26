@@ -111,7 +111,9 @@ exports.main = async (event, context) => {
             beforeBalance: (updatedUser.balance || 0) - order.totalAmount,
             afterBalance: updatedUser.balance || 0,
             relatedOrderNo: order.orderNo,
-            description: `订单退款（${order.boatType.name}）`,
+            description: order.orderType === 'product'
+              ? `订单退款（${order.productName}）`
+              : `订单退款（${order.boatType.name}）`,
             sort: Date.now(),
             enabled: true,
             createdAt: new Date(),
@@ -130,6 +132,20 @@ exports.main = async (event, context) => {
             updatedAt: new Date()
           }
         })
+
+        // 商品订单退回库存
+        if (order.orderType === 'product' && order.productId) {
+          try {
+            const { data: product } = await db.collection('products').doc(order.productId).get()
+            if (product && product.stock > 0) {
+              await db.collection('products').doc(order.productId).update({
+                data: { soldCount: _.inc(-(order.quantity || 1)) }
+              })
+            }
+          } catch (e) {
+            console.warn('退回库存失败（非致命）:', e.message)
+          }
+        }
 
         console.log('✅ 余额退款成功')
 
@@ -205,6 +221,20 @@ exports.main = async (event, context) => {
             updatedAt: new Date()
           }
         })
+
+        // 商品订单退回库存
+        if (order.orderType === 'product' && order.productId) {
+          try {
+            const { data: product } = await db.collection('products').doc(order.productId).get()
+            if (product && product.stock > 0) {
+              await db.collection('products').doc(order.productId).update({
+                data: { soldCount: _.inc(-(order.quantity || 1)) }
+              })
+            }
+          } catch (e) {
+            console.warn('退回库存失败（非致命）:', e.message)
+          }
+        }
 
         return {
           code: 200,

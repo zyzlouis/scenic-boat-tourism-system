@@ -45,6 +45,43 @@ exports.main = async (event, context) => {
 
     const user = userList[0] || { nickname: '游客' }
 
+    // 判断订单类型 - 商品订单走单独核销逻辑
+    if (order.orderType === 'product') {
+      if (order.status !== 'paid') {
+        return {
+          code: 10002,
+          message: order.status === 'completed' ? '该订单已核销' : '订单状态不正确',
+          data: null
+        }
+      }
+
+      if (!order.needVerification) {
+        return { code: 400, message: '该商品无需核销', data: null }
+      }
+
+      if (order.verificationDeadline && new Date() > new Date(order.verificationDeadline)) {
+        return { code: 10004, message: '核销码已过期，请联系管理员处理', data: null }
+      }
+
+      return {
+        code: 200,
+        message: '扫码成功，请确认核销',
+        data: {
+          orderId: order._id,
+          orderNo: order.orderNo,
+          action: 'verify_product',
+          productName: order.productName,
+          projectName: order.projectName || '',
+          quantity: order.quantity,
+          totalAmount: order.totalAmount,
+          verificationDeadline: order.verificationDeadline,
+          userNickname: user.nickname || user.nickName || '游客'
+        }
+      }
+    }
+
+    // 以下是原有的游船订单逻辑
+
     // 判断是发船还是收船
     if (order.status === 'paid') {
       // 待发船 - 检查订单是否超时

@@ -46,7 +46,8 @@ exports.main = async (event, context) => {
     const allowedCollections = [
       'boatTypes', 'boats', 'staff', 'banners',
       'announcements', 'pricingConfigs', 'app_settings',
-      'orders', 'users', 'verificationLogs', 'recharge_plans'
+      'orders', 'users', 'verificationLogs', 'recharge_plans',
+      'projects', 'products'
     ]
 
     if (!allowedCollections.includes(collection)) {
@@ -111,7 +112,7 @@ exports.main = async (event, context) => {
 
       case 'queryOrders': {
         // 查询订单（支持日期范围、状态筛选、船型筛选、分页）
-        const { startDate, endDate, status, boatTypeCode, limit, skip } = data || {}
+        const { startDate, endDate, status, boatTypeCode, orderType, limit, skip } = data || {}
         let whereCondition = {}
 
         if (startDate && endDate) {
@@ -128,6 +129,12 @@ exports.main = async (event, context) => {
 
         if (boatTypeCode) {
           whereCondition['boatType.code'] = boatTypeCode
+        }
+
+        if (orderType === 'product') {
+          whereCondition.orderType = 'product'
+        } else if (orderType === 'boat') {
+          whereCondition.orderType = _.neq('product')
         }
 
         let query = db.collection('orders')
