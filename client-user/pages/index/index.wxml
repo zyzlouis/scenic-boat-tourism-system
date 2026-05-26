@@ -119,6 +119,37 @@
     </view>
   </view>
 
+  <!-- 项目商品区 -->
+  <block wx:for="{{projects}}" wx:key="_id" wx:for-item="project">
+    <view class="section-header">
+      <view class="section-title">{{project.name}}</view>
+      <view class="section-desc">{{project.description}}</view>
+      <view wx:if="{{project.openTime}}" class="section-time">
+        营业时间：{{project.openTime}} - {{project.closeTime}}
+      </view>
+    </view>
+    <view class="product-list">
+      <view
+        wx:for="{{project.products}}"
+        wx:key="_id"
+        wx:for-item="product"
+        class="product-card"
+        data-id="{{product._id}}"
+        bindtap="goToProductDetail"
+      >
+        <image wx:if="{{product.imageUrl}}" class="product-image" src="{{product.imageUrl}}" mode="aspectFill" />
+        <view class="product-info-card">
+          <view class="product-name">{{product.name}}</view>
+          <view class="product-desc">{{product.description}}</view>
+          <view class="product-bottom">
+            <view class="product-price">¥{{product.price}}</view>
+            <view wx:if="{{product.stock > 0}}" class="product-stock">剩余{{product.stock - product.soldCount}}份</view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </block>
+
   <!-- 空状态 -->
   <view wx:if="{{!loading && boatTypes.length === 0}}" class="empty-container">
     <van-empty description="暂无可租赁的船型" />

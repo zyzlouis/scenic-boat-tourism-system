@@ -1,0 +1,9 @@
+{
+  "navigationBarTitleText": "商品详情",
+  "usingComponents": {
+    "van-button": "@vant/weapp/button/index",
+    "van-stepper": "@vant/weapp/stepper/index",
+    "van-tag": "@vant/weapp/tag/index",
+    "van-loading": "@vant/weapp/loading/index"
+  }
+}

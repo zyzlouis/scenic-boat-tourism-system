@@ -1,0 +1,44 @@
+<wxs module="filters" src="../../utils/filters.wxs"></wxs>
+<view class="container">
+  <van-loading wx:if="{{loading}}" size="48rpx" type="spinner" color="#1989fa" custom-class="loading">加载中...</van-loading>
+
+  <block wx:if="{{!loading && order}}">
+    <view class="status-card status-{{order.status}}">
+      <view class="status-text">{{filters.getOrderStatusText(order.status)}}</view>
+      <view wx:if="{{order.status === 'paid' && order.needVerification}}" class="status-sub">核销码有效期剩余 {{remainDays}} 天</view>
+    </view>
+
+    <view wx:if="{{order.status === 'paid' && order.needVerification && order.verificationCode}}" class="code-card">
+      <view class="code-label">核销码</view>
+      <view class="code-value">{{order.verificationCode}}</view>
+      <view class="code-tip">请出示此核销码给工作人员扫码</view>
+    </view>
+
+    <view wx:if="{{order.status === 'completed' && order.verifiedAt}}" class="verified-card">
+      <view class="verified-title">已核销</view>
+      <view class="verified-info">核销时间：{{filters.formatTime(order.verifiedAt)}}</view>
+      <view wx:if="{{order.verifiedStaffName}}" class="verified-info">核销员工：{{order.verifiedStaffName}}</view>
+    </view>
+
+    <view wx:if="{{order.status === 'completed' && !order.needVerification}}" class="verified-card">
+      <view class="verified-title">交易完成</view>
+    </view>
+
+    <view class="info-card">
+      <view class="info-title">订单信息</view>
+      <view class="info-row"><text class="label">订单号</text><text class="value">{{order.orderNo}}</text></view>
+      <view class="info-row"><text class="label">商品</text><text class="value">{{order.productName}}</text></view>
+      <view wx:if="{{order.projectName}}" class="info-row"><text class="label">所属项目</text><text class="value">{{order.projectName}}</text></view>
+      <view class="info-row"><text class="label">数量</text><text class="value">{{order.quantity}}</text></view>
+      <view class="info-row"><text class="label">单价</text><text class="value">¥{{filters.formatMoney(order.productPrice)}}</text></view>
+      <view class="info-row"><text class="label">订单金额</text><text class="value price">¥{{filters.formatMoney(order.totalAmount)}}</text></view>
+      <view class="info-row"><text class="label">下单时间</text><text class="value">{{filters.formatTime(order.createdAt)}}</text></view>
+      <view wx:if="{{order.verificationDeadline && order.needVerification}}" class="info-row"><text class="label">核销截止</text><text class="value">{{filters.formatTime(order.verificationDeadline)}}</text></view>
+    </view>
+
+    <view wx:if="{{order.status === 'paid'}}" class="action-area">
+      <van-button type="danger" size="large" plain round bind:click="handleRefund">申请退款</van-button>
+    </view>
+  </block>
+  <van-dialog id="van-dialog" />
+</view>

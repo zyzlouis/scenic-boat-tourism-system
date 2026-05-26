@@ -1,6 +1,11 @@
 <!--pages/order-list/order-list.wxml-->
 <wxs module="filters" src="../../utils/filters.wxs"></wxs>
 <view class="container">
+  <van-tabs active="{{activeTab}}" bind:change="onTabChange" color="#1989fa">
+    <van-tab title="游船订单" name="boat"></van-tab>
+    <van-tab title="商品订单" name="product"></van-tab>
+  </van-tabs>
+
   <!-- 订单列表 -->
   <view class="order-list">
     <view
@@ -8,6 +13,7 @@
       wx:key="orderId"
       class="order-item card"
       data-id="{{item.orderId}}"
+      data-type="{{item.orderType || 'boat'}}"
       bindtap="gotoOrderDetail"
     >
       <!-- 订单头部 -->
@@ -24,7 +30,8 @@
       <!-- 订单内容 -->
       <view class="order-content">
         <view class="boat-info">
-          <view class="boat-type">{{item.boatTypeName}}</view>
+          <view wx:if="{{item.orderType === 'product'}}" class="boat-type">{{item.productName}} ×{{item.quantity}}</view>
+          <view wx:else class="boat-type">{{item.boatTypeName}}</view>
           <view wx:if="{{item.boatNumber}}" class="boat-number">船号：{{item.boatNumber}}</view>
         </view>
 

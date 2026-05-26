@@ -1,0 +1,32 @@
+<view class="container">
+  <van-loading wx:if="{{loading}}" size="48rpx" type="spinner" color="#1989fa" custom-class="loading">加载中...</van-loading>
+
+  <block wx:if="{{!loading && product}}">
+    <image wx:if="{{product.imageUrl}}" class="product-hero" src="{{product.imageUrl}}" mode="aspectFill" />
+
+    <view class="info-card">
+      <view class="product-name">{{product.name}}</view>
+      <view wx:if="{{product.projectName}}" class="project-name">{{product.projectName}}</view>
+      <view class="product-desc">{{product.description}}</view>
+      <view class="price-row">
+        <text class="price">¥{{product.price}}</text>
+        <text wx:if="{{product.needVerification}}" class="verify-tag">需核销</text>
+        <text wx:else class="verify-tag no-verify">购买即完成</text>
+      </view>
+      <view wx:if="{{product.stock > 0}}" class="stock-info">库存：剩余 {{product.stock - product.soldCount}} 份</view>
+      <view wx:if="{{product.needVerification && product.verificationDays}}" class="deadline-info">购买后 {{product.verificationDays}} 天内有效</view>
+    </view>
+
+    <view class="action-card">
+      <view class="quantity-row">
+        <text class="label">购买数量</text>
+        <van-stepper value="{{quantity}}" min="1" max="{{product.stock > 0 ? product.stock - product.soldCount : 99}}" bind:change="onQuantityChange" />
+      </view>
+      <view class="total-row">
+        <text class="label">合计</text>
+        <text class="total-price">¥{{(product.price * quantity).toFixed(2)}}</text>
+      </view>
+      <van-button type="primary" size="large" round custom-class="buy-button" bind:click="handleBuy">立即购买</van-button>
+    </view>
+  </block>
+</view>

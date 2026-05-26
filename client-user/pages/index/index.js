@@ -7,12 +7,14 @@ Page({
     banners: [],
     announcements: [],
     boatTypes: [],
+    projects: [],
     loading: true
   },
 
   onLoad() {
     this.loadBannersAndAnnouncements();
     this.loadBoatTypes();
+    this.loadProjects();
   },
 
   onShow() {
@@ -20,6 +22,7 @@ Page({
     if (!this.data.loading) {
       this.loadBannersAndAnnouncements();
       this.loadBoatTypes();
+      this.loadProjects();
     }
 
     // 也检查是否有待处理的船型选择（tabBar页面onLoad只执行一次）
@@ -146,7 +149,8 @@ Page({
   async onPullDownRefresh() {
     await Promise.all([
       this.loadBannersAndAnnouncements(),
-      this.loadBoatTypes()
+      this.loadBoatTypes(),
+      this.loadProjects()
     ]);
     wx.stopPullDownRefresh();
   },
@@ -177,6 +181,24 @@ Page({
 
     wx.navigateTo({
       url: `/pages/announcement-detail/announcement-detail?id=${item._id}`
+    });
+  },
+
+  async loadProjects() {
+    try {
+      const res = await cloud.getProjects();
+      this.setData({
+        projects: res.data || []
+      });
+    } catch (error) {
+      console.error('加载项目列表失败:', error);
+    }
+  },
+
+  goToProductDetail(e) {
+    const { id } = e.currentTarget.dataset;
+    wx.navigateTo({
+      url: `/pages/product-detail/product-detail?productId=${id}`
     });
   },
 

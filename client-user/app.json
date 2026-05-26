@@ -8,6 +8,8 @@
     "pages/profile/profile",
     "pages/recharge/recharge",
     "pages/recharge-logs/recharge-logs",
+    "pages/product-detail/product-detail",
+    "pages/product-order/product-order",
     "pages/announcement-detail/announcement-detail",
     "pages/staff/login/login",
     "pages/staff/scan/scan",

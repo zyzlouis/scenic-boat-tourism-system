@@ -223,8 +223,11 @@ Page({
           showCancel: false,
           success: () => {
             // 跳转到订单详情
+            const detailPage = this.data.order.orderType === 'product'
+              ? '/pages/product-order/product-order'
+              : '/pages/order-detail/order-detail'
             wx.redirectTo({
-              url: `/pages/order-detail/order-detail?orderId=${this.data.order._id}`
+              url: `${detailPage}?orderId=${this.data.order._id}`
             })
           }
         })
@@ -297,8 +300,11 @@ Page({
             success: () => {
               // 延迟跳转，等待支付回调处理完成
               setTimeout(() => {
+                const detailPage = this.data.order.orderType === 'product'
+                  ? '/pages/product-order/product-order'
+                  : '/pages/order-detail/order-detail'
                 wx.redirectTo({
-                  url: `/pages/order-detail/order-detail?orderId=${this.data.order._id}`
+                  url: `${detailPage}?orderId=${this.data.order._id}`
                 })
               }, 1500)
             }

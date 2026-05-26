@@ -61,8 +61,20 @@ function getOrderDetail(orderId) {
 /**
  * 获取订单列表
  */
-function getOrderList(page = 1, pageSize = 10, status = null) {
-  return callFunction('getOrderList', { page, pageSize, status })
+function getOrderList(page = 1, pageSize = 10, status = null, orderType = null) {
+  return callFunction('getOrderList', { page, pageSize, status, orderType })
+}
+
+function getProjects() {
+  return callFunction('getProjects', {})
+}
+
+function createProductOrder(productId, quantity) {
+  return callFunction('createProductOrder', { productId, quantity })
+}
+
+function verifyProduct(orderId, staffId) {
+  return callFunction('verifyProduct', { orderId, staffId })
 }
 
 module.exports = {
@@ -70,5 +82,8 @@ module.exports = {
   getBoatTypes,
   createOrder,
   getOrderDetail,
-  getOrderList
+  getOrderList,
+  getProjects,
+  createProductOrder,
+  verifyProduct
 }

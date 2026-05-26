@@ -10,6 +10,7 @@ Page({
     total: 0,
     loading: true,
     hasMore: true,
+    activeTab: 'boat',
     formatTime: util.formatTime,
     formatMoney: util.formatMoney,
     getOrderStatusText: util.getOrderStatusText,
@@ -36,7 +37,7 @@ Page({
     try {
       this.setData({ loading: true });
 
-      const res = await cloud.getOrderList(this.data.page, this.data.pageSize);
+      const res = await cloud.getOrderList(this.data.page, this.data.pageSize, null, this.data.activeTab);
 
       if (res.code === 200) {
         const { list, total, hasMore } = res.data;
@@ -76,10 +77,22 @@ Page({
    * 查看订单详情
    */
   gotoOrderDetail(e) {
-    const { id } = e.currentTarget.dataset;
-    wx.navigateTo({
-      url: `/pages/order-detail/order-detail?orderId=${id}`
+    const { id, type } = e.currentTarget.dataset;
+    if (type === 'product') {
+      wx.navigateTo({ url: `/pages/product-order/product-order?orderId=${id}` });
+    } else {
+      wx.navigateTo({ url: `/pages/order-detail/order-detail?orderId=${id}` });
+    }
+  },
+
+  onTabChange(e) {
+    this.setData({
+      activeTab: e.detail.name || e.detail,
+      page: 1,
+      hasMore: true,
+      orders: []
     });
+    this.loadOrderList();
   },
 
   /**
