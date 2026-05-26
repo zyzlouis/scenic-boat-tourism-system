@@ -8,6 +8,7 @@
     "pages/profile/profile",
     "pages/recharge/recharge",
     "pages/recharge-logs/recharge-logs",
+    "pages/water-castle/water-castle",
     "pages/product-detail/product-detail",
     "pages/product-order/product-order",
     "pages/announcement-detail/announcement-detail",
@@ -37,14 +38,20 @@
         "selectedIconPath": "images/home-active.png"
       },
       {
+        "pagePath": "pages/water-castle/water-castle",
+        "text": "水上城堡",
+        "iconPath": "images/water-castle.png",
+        "selectedIconPath": "images/water-castle-active.png"
+      },
+      {
         "pagePath": "pages/order-list/order-list",
-        "text": "我的订单",
+        "text": "订单",
         "iconPath": "images/order.png",
         "selectedIconPath": "images/order-active.png"
       },
       {
         "pagePath": "pages/profile/profile",
-        "text": "个人中心",
+        "text": "我的",
         "iconPath": "images/profile.png",
         "selectedIconPath": "images/profile-active.png"
       }
