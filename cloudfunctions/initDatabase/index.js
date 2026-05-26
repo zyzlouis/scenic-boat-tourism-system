@@ -384,6 +384,106 @@ const rechargePlansData = [
   }
 ]
 
+// 9. 项目数据
+const projectsData = [
+  {
+    _id: 'project_water_castle',
+    name: '水上城堡',
+    description: '水上乐园游玩项目',
+    imageUrl: '',
+    openTime: '09:00',
+    closeTime: '19:00',
+    sort: 1,
+    enabled: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+]
+
+// 10. 商品数据
+const productsData = [
+  {
+    _id: 'prod_child_ticket',
+    projectId: 'project_water_castle',
+    name: '单人儿童票',
+    description: '适合3-12岁儿童',
+    imageUrl: '',
+    price: 29.9,
+    needVerification: true,
+    verificationDays: 15,
+    stock: 0,
+    soldCount: 0,
+    sort: 1,
+    enabled: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'prod_parent_child_1',
+    projectId: 'project_water_castle',
+    name: '一大一小亲子票',
+    description: '1位成人+1位儿童',
+    imageUrl: '',
+    price: 39.9,
+    needVerification: true,
+    verificationDays: 15,
+    stock: 0,
+    soldCount: 0,
+    sort: 2,
+    enabled: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'prod_parent_child_2',
+    projectId: 'project_water_castle',
+    name: '一大二小亲子票',
+    description: '1位成人+2位儿童',
+    imageUrl: '',
+    price: 59.9,
+    needVerification: true,
+    verificationDays: 15,
+    stock: 0,
+    soldCount: 0,
+    sort: 3,
+    enabled: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'prod_bath_towel',
+    projectId: 'project_water_castle',
+    name: '浴巾',
+    description: '水上乐园专用浴巾',
+    imageUrl: '',
+    price: 0,
+    needVerification: false,
+    verificationDays: 0,
+    stock: 0,
+    soldCount: 0,
+    sort: 4,
+    enabled: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'prod_anti_slip_socks',
+    projectId: 'project_water_castle',
+    name: '防滑袜',
+    description: '水上乐园专用防滑袜',
+    imageUrl: '',
+    price: 0,
+    needVerification: false,
+    verificationDays: 0,
+    stock: 0,
+    soldCount: 0,
+    sort: 5,
+    enabled: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+]
+
 // ===== 初始化函数 =====
 
 exports.main = async (event, context) => {
@@ -399,10 +499,12 @@ exports.main = async (event, context) => {
     } else if (action === 'check') {
       // 检查数据库状态
       return await checkDatabase()
+    } else if (action === 'initProducts') {
+      return await initProductCollections()
     } else {
       return {
         success: false,
-        message: '无效的操作类型，支持：init（初始化）、clear（清空）、check（检查）'
+        message: '无效的操作类型，支持：init（初始化）、clear（清空）、check（检查）、initProducts（初始化商品集合）'
       }
     }
   } catch (error) {
@@ -543,7 +645,7 @@ async function clearAllCollections() {
 
 // 检查数据库状态
 async function checkDatabase() {
-  const collections = ['boatTypes', 'pricingConfigs', 'boats', 'staff', 'banners', 'announcements', 'app_settings', 'recharge_plans']
+  const collections = ['boatTypes', 'pricingConfigs', 'boats', 'staff', 'banners', 'announcements', 'app_settings', 'recharge_plans', 'projects', 'products']
   const results = {}
 
   for (const collectionName of collections) {
@@ -573,7 +675,7 @@ async function checkDatabase() {
 
 // 创建运行时集合（确保集合存在，即使是空的）
 async function createRuntimeCollections() {
-  const runtimeCollections = ['users', 'orders', 'recharge_orders', 'balance_logs', 'verificationLogs']
+  const runtimeCollections = ['users', 'orders', 'recharge_orders', 'balance_logs', 'verificationLogs', 'projects', 'products']
   const results = {}
 
   for (const collectionName of runtimeCollections) {
@@ -614,4 +716,17 @@ async function createRuntimeCollections() {
   }
 
   return results
+}
+
+async function initProductCollections() {
+  const results = {}
+  console.log('开始初始化商品相关集合...')
+  results.projects = await initCollection('projects', projectsData)
+  results.products = await initCollection('products', productsData)
+  console.log('商品相关集合初始化完成！')
+  return {
+    success: true,
+    message: '商品集合初始化成功',
+    results: results
+  }
 }
