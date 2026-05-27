@@ -6,12 +6,14 @@ Page({
     banners: [],
     announcements: [],
     navItems: [],
+    appConfig: null,
     loading: true
   },
 
   onLoad() {
     this.loadBannersAndAnnouncements();
     this.loadNavItems();
+    this.loadAppConfig();
   },
 
   onShow() {
@@ -42,6 +44,17 @@ Page({
     } catch (error) {
       console.error('加载导航失败:', error);
       this.setData({ loading: false });
+    }
+  },
+
+  async loadAppConfig() {
+    try {
+      const res = await wx.cloud.callFunction({ name: 'getAppConfig' });
+      if (res.result.code === 200) {
+        this.setData({ appConfig: res.result.data });
+      }
+    } catch (error) {
+      console.error('加载景区信息失败:', error);
     }
   },
 

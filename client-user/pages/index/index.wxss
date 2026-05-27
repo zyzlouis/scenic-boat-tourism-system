@@ -30,6 +30,7 @@
 .nav-grid {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
 }
 .nav-item {
   width: 25%;
@@ -109,4 +110,40 @@
   margin-left: 16rpx;
   flex-shrink: 0;
   color: #999999;
+}
+
+/* 景区信息卡片 */
+.info-section {
+  padding: 0 20rpx 20rpx;
+}
+.info-card {
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+.info-card-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 24rpx;
+}
+.info-item {
+  font-size: 28rpx;
+  color: #666;
+  margin-bottom: 16rpx;
+  display: flex;
+  align-items: center;
+}
+.info-icon {
+  margin-right: 12rpx;
+  font-size: 28rpx;
+}
+.info-about {
+  font-size: 26rpx;
+  color: #999;
+  line-height: 1.8;
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
 }
