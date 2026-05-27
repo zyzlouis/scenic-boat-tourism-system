@@ -11,7 +11,8 @@
 
 ## 技术栈
 
-- 用户端 `client-user/` + 员工端 `client-staff/`：两个独立的原生微信小程序
+- 小程序 `client-user/`：唯一的线上小程序，用户功能 + 员工功能（通过「我的→员工入口」进入）整合在一起
+- ⚠️ `client-staff/` 是早期设想的独立员工端小程序，**已废弃，勿用**——员工功能已在 2026-03 整合进 `client-user/pages/staff/`
 - 后台 `admin-web/`：Vue3 + Element Plus + CloudBase JS SDK（`@cloudbase/js-sdk`，直连云开发）
 - `cloudfunctions/`：39 个云函数
 - 云数据库：12 个集合
