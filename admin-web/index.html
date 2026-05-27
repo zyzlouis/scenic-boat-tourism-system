@@ -968,8 +968,12 @@
                     <span v-else style="color:#ccc;font-size:12px">无图片</span>
                   </template>
                 </el-table-column>
-                <el-table-column prop="name" label="项目名称" />
-                <el-table-column prop="description" label="描述" />
+                <el-table-column label="项目名称" min-width="150">
+                  <template #default="scope">
+                    <div>{{scope.row.name}}</div>
+                    <div v-if="scope.row.description" style="color:#999;font-size:12px;margin-top:2px">{{scope.row.description}}</div>
+                  </template>
+                </el-table-column>
                 <el-table-column label="营业时间" width="160">
                   <template #default="scope">{{scope.row.openTime || ''}} - {{scope.row.closeTime || ''}}</template>
                 </el-table-column>
