@@ -994,7 +994,12 @@
               <el-form :model="projectForm" label-width="100px">
                 <el-form-item label="项目名称"><el-input v-model="projectForm.name" placeholder="如：水上城堡" /></el-form-item>
                 <el-form-item label="描述"><el-input v-model="projectForm.description" type="textarea" :rows="2" /></el-form-item>
-                <el-form-item label="图片URL"><el-input v-model="projectForm.imageUrl" placeholder="可选" /></el-form-item>
+                <el-form-item label="项目图片">
+                  <el-upload :action="''" :auto-upload="false" :on-change="handleProjectImageChange" :show-file-list="false" accept="image/*">
+                    <el-button size="small" type="primary">选择图片</el-button>
+                  </el-upload>
+                  <el-image v-if="projectForm.imageUrl" :src="projectForm.imageUrl" style="width:200px;height:150px;margin-top:10px" fit="contain" />
+                </el-form-item>
                 <el-form-item label="开始时间"><el-input v-model="projectForm.openTime" placeholder="09:00" /></el-form-item>
                 <el-form-item label="结束时间"><el-input v-model="projectForm.closeTime" placeholder="19:00" /></el-form-item>
               </el-form>
@@ -1074,7 +1079,12 @@
                 <el-form-item label="需要核销"><el-switch v-model="productForm.needVerification" /></el-form-item>
                 <el-form-item v-if="productForm.needVerification" label="核销有效天数"><el-input-number v-model="productForm.verificationDays" :min="1" :max="365" /></el-form-item>
                 <el-form-item label="库存(0=不限)"><el-input-number v-model="productForm.stock" :min="0" /></el-form-item>
-                <el-form-item label="图片URL"><el-input v-model="productForm.imageUrl" placeholder="可选" /></el-form-item>
+                <el-form-item label="商品图片">
+                  <el-upload :action="''" :auto-upload="false" :on-change="handleProductImageChange" :show-file-list="false" accept="image/*">
+                    <el-button size="small" type="primary">选择图片</el-button>
+                  </el-upload>
+                  <el-image v-if="productForm.imageUrl" :src="productForm.imageUrl" style="width:200px;height:150px;margin-top:10px" fit="contain" />
+                </el-form-item>
               </el-form>
               <template #footer>
                 <el-button @click="productDialogVisible = false">取消</el-button>
@@ -1649,6 +1659,8 @@
 
           // 图片上传临时文件
           tempImageFile: null,
+          tempProjectImageFile: null,
+          tempProductImageFile: null,
 
           // 订单表格列显示控制
           orderColumns: [
@@ -2701,9 +2713,20 @@
             this.editingProjectId = null;
             this.projectForm = { name: '', description: '', imageUrl: '', openTime: '09:00', closeTime: '19:00' };
           }
+          this.tempProjectImageFile = null;
           this.projectDialogVisible = true;
         },
+        handleProjectImageChange(file) {
+          this.tempProjectImageFile = file.raw;
+          const reader = new FileReader();
+          reader.onload = (e) => { this.projectForm.imageUrl = e.target.result; };
+          reader.readAsDataURL(file.raw);
+        },
         async saveProject() {
+          if (this.tempProjectImageFile) {
+            this.projectForm.imageUrl = await this.uploadImage(this.tempProjectImageFile);
+            this.tempProjectImageFile = null;
+          }
           const data = { ...this.projectForm, sort: Date.now(), enabled: true };
           if (this.editingProjectId) {
             await this.callAdminApi({ action: 'update', collection: 'projects', docId: this.editingProjectId, data });
@@ -2737,9 +2760,20 @@
             this.editingProductId = null;
             this.productForm = { projectId: this.productFilterProjectId || '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0 };
           }
+          this.tempProductImageFile = null;
           this.productDialogVisible = true;
         },
+        handleProductImageChange(file) {
+          this.tempProductImageFile = file.raw;
+          const reader = new FileReader();
+          reader.onload = (e) => { this.productForm.imageUrl = e.target.result; };
+          reader.readAsDataURL(file.raw);
+        },
         async saveProduct() {
+          if (this.tempProductImageFile) {
+            this.productForm.imageUrl = await this.uploadImage(this.tempProductImageFile);
+            this.tempProductImageFile = null;
+          }
           const data = { ...this.productForm, sort: Date.now(), enabled: true, soldCount: 0 };
           if (this.editingProductId) {
             delete data.soldCount;
