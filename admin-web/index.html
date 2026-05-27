@@ -2802,7 +2802,7 @@
             this.projectForm.imageUrl = await this.uploadImage(this.tempProjectImageFile);
             this.tempProjectImageFile = null;
           }
-          const data = { ...this.projectForm, sort: Date.now(), enabled: true };
+          const data = { ...this.projectForm, enabled: true };
           if (this.editingProjectId) {
             await this.callAdminApi({ action: 'update', collection: 'projects', docId: this.editingProjectId, data });
           } else {
@@ -2849,7 +2849,7 @@
             this.productForm.imageUrl = await this.uploadImage(this.tempProductImageFile);
             this.tempProductImageFile = null;
           }
-          const data = { ...this.productForm, sort: Date.now(), enabled: true, soldCount: 0 };
+          const data = { ...this.productForm, enabled: true, soldCount: 0 };
           if (this.editingProductId) {
             delete data.soldCount;
             await this.callAdminApi({ action: 'update', collection: 'products', docId: this.editingProductId, data });
