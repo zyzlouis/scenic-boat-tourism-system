@@ -112,6 +112,71 @@
   color: #999999;
 }
 
+/* 活动横幅 */
+.promo-section {
+  padding: 0 20rpx 20rpx;
+}
+.promo-section:active {
+  opacity: 0.9;
+}
+.promo-banner {
+  width: 100%;
+  height: 200rpx;
+  border-radius: 16rpx;
+  display: block;
+}
+
+/* 图文推荐 */
+.recommend-section {
+  padding: 0 20rpx 20rpx;
+}
+.recommend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+.recommend-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+}
+.recommend-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.recommend-card {
+  width: 48%;
+  background: #fff;
+  border-radius: 12rpx;
+  overflow: hidden;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.06);
+}
+.recommend-card:active {
+  opacity: 0.85;
+}
+.recommend-image {
+  width: 100%;
+  height: 200rpx;
+}
+.recommend-info {
+  padding: 16rpx;
+}
+.recommend-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  display: block;
+  margin-bottom: 6rpx;
+}
+.recommend-desc {
+  font-size: 22rpx;
+  color: #999;
+  display: block;
+}
+
 /* 景区信息卡片 */
 .info-section {
   padding: 0 20rpx 20rpx;

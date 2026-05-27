@@ -7,6 +7,7 @@ Page({
     announcements: [],
     navItems: [],
     appConfig: null,
+    recommendItems: [],
     loading: true
   },
 
@@ -51,10 +52,49 @@ Page({
     try {
       const res = await wx.cloud.callFunction({ name: 'getAppConfig' });
       if (res.result.code === 200) {
-        this.setData({ appConfig: res.result.data });
+        const config = res.result.data;
+        this.setData({ appConfig: config });
+        if (config.recommendEnabled) {
+          this.loadRecommendItems();
+        }
       }
     } catch (error) {
       console.error('加载景区信息失败:', error);
+    }
+  },
+
+  async loadRecommendItems() {
+    try {
+      const db = wx.cloud.database();
+      const _ = db.command;
+      const { data } = await db.collection('recommendItems')
+        .where({ enabled: true })
+        .orderBy('sort', 'asc')
+        .get();
+      this.setData({ recommendItems: data || [] });
+    } catch (error) {
+      console.error('加载推荐数据失败:', error);
+    }
+  },
+
+  onPromoBannerTap() {
+    const link = this.data.appConfig && this.data.appConfig.promoBannerLink;
+    if (link) {
+      wx.navigateTo({
+        url: link,
+        fail: () => { wx.switchTab({ url: link }); }
+      });
+    }
+  },
+
+  onRecommendTap(e) {
+    const { url } = e.currentTarget.dataset;
+    if (url) {
+      if (url.startsWith('http')) {
+        wx.navigateTo({ url: `/pages/webview/webview?url=${encodeURIComponent(url)}` });
+      } else {
+        wx.navigateTo({ url });
+      }
     }
   },
 

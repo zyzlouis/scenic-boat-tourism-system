@@ -43,6 +43,11 @@
     </view>
   </view>
 
+  <!-- 活动横幅 -->
+  <view wx:if="{{appConfig.promoBannerEnabled && appConfig.promoBannerUrl}}" class="promo-section" bindtap="onPromoBannerTap">
+    <image class="promo-banner" src="{{appConfig.promoBannerUrl}}" mode="aspectFill" />
+  </view>
+
   <!-- 公告栏 -->
   <view wx:if="{{announcements.length > 0}}" class="notice-section">
     <view
@@ -60,6 +65,28 @@
       </view>
       <view class="notice-arrow">
         <van-icon name="arrow" size="16rpx" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 图文推荐 -->
+  <view wx:if="{{appConfig.recommendEnabled && recommendItems.length > 0}}" class="recommend-section">
+    <view class="recommend-header">
+      <text class="recommend-title">{{appConfig.recommendTitle || '精选推荐'}}</text>
+    </view>
+    <view class="recommend-grid">
+      <view
+        wx:for="{{recommendItems}}"
+        wx:key="_id"
+        class="recommend-card"
+        data-url="{{item.linkUrl}}"
+        bindtap="onRecommendTap"
+      >
+        <image wx:if="{{item.imageUrl}}" class="recommend-image" src="{{item.imageUrl}}" mode="aspectFill" />
+        <view class="recommend-info">
+          <text class="recommend-name">{{item.title}}</text>
+          <text wx:if="{{item.description}}" class="recommend-desc">{{item.description}}</text>
+        </view>
       </view>
     </view>
   </view>

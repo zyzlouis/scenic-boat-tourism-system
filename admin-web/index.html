@@ -1159,6 +1159,66 @@
             </el-dialog>
           </div>
 
+          <!-- 推荐管理 -->
+          <div v-if="currentMenu === 'recommendMgmt'">
+            <div class="page-header">
+              <h2 class="page-title">推荐管理</h2>
+              <el-button type="primary" @click="showRecommendDialog()">新增推荐</el-button>
+            </div>
+            <div style="color:#999;font-size:13px;margin-bottom:15px;padding:0 20px">首页底部「图文推荐」卡片，需在系统设置中开启「图文推荐」开关后前端才会显示</div>
+            <div class="data-table">
+              <el-table :data="recommendData" stripe>
+                <el-table-column label="图片" width="100">
+                  <template #default="scope">
+                    <img v-if="scope.row.imageUrl" :src="scope.row.imageUrl" style="width:80px;height:60px;object-fit:cover;border-radius:4px" />
+                    <span v-else style="color:#ccc;font-size:12px">无图片</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="标题" width="150">
+                  <template #default="scope">{{scope.row.title}}</template>
+                </el-table-column>
+                <el-table-column label="描述" width="200">
+                  <template #default="scope">{{scope.row.description || '-'}}</template>
+                </el-table-column>
+                <el-table-column label="跳转链接" width="200">
+                  <template #default="scope">{{scope.row.linkUrl || '-'}}</template>
+                </el-table-column>
+                <el-table-column label="排序" width="70">
+                  <template #default="scope">{{scope.row.sort}}</template>
+                </el-table-column>
+                <el-table-column label="状态" width="80">
+                  <template #default="scope">
+                    <el-switch v-model="scope.row.enabled" @change="toggleRecommendEnabled(scope.row)" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="150">
+                  <template #default="scope">
+                    <el-button size="small" @click="showRecommendDialog(scope.row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteRecommend(scope.row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <el-dialog :title="editingRecommendId ? '编辑推荐' : '新增推荐'" v-model="recommendDialogVisible" width="500px">
+              <el-form :model="recommendForm" label-width="100px">
+                <el-form-item label="标题"><el-input v-model="recommendForm.title" placeholder="如：两天一夜攻略" /></el-form-item>
+                <el-form-item label="描述"><el-input v-model="recommendForm.description" placeholder="简短描述" /></el-form-item>
+                <el-form-item label="跳转链接"><el-input v-model="recommendForm.linkUrl" placeholder="可选，小程序页面路径或网址" /></el-form-item>
+                <el-form-item label="排序"><el-input-number v-model="recommendForm.sort" :min="1" /></el-form-item>
+                <el-form-item label="封面图片">
+                  <el-upload :action="''" :auto-upload="false" :on-change="handleRecommendImageChange" :show-file-list="false" accept="image/*">
+                    <el-button size="small" type="primary">选择图片</el-button>
+                  </el-upload>
+                  <el-image v-if="recommendForm.imageUrl" :src="recommendForm.imageUrl" style="width:200px;height:150px;margin-top:10px" fit="cover" />
+                </el-form-item>
+              </el-form>
+              <template #footer>
+                <el-button @click="recommendDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveRecommend">保存</el-button>
+              </template>
+            </el-dialog>
+          </div>
+
           <div v-if="currentMenu === 'settings'">
             <div class="page-header">
               <div class="page-title">系统设置</div>
@@ -1196,6 +1256,27 @@
                 </el-form-item>
                 <el-form-item label="关于我们">
                   <el-input v-model="settingsForm.aboutUs" type="textarea" :rows="5" placeholder="请输入景区介绍" />
+                </el-form-item>
+                <el-divider>首页内容区块</el-divider>
+                <el-form-item label="活动横幅">
+                  <el-switch v-model="settingsForm.promoBannerEnabled" active-text="开启" inactive-text="关闭" />
+                  <div style="color: #999; font-size: 12px; margin-top: 4px;">导航下方的活动/广告横幅图</div>
+                </el-form-item>
+                <el-form-item v-if="settingsForm.promoBannerEnabled" label="横幅图片">
+                  <el-upload :action="''" :auto-upload="false" :on-change="handlePromoBannerChange" :show-file-list="false" accept="image/*">
+                    <el-button size="small" type="primary">选择图片</el-button>
+                  </el-upload>
+                  <el-image v-if="settingsForm.promoBannerUrl" :src="settingsForm.promoBannerUrl" style="width:100%;max-width:400px;height:auto;margin-top:10px" fit="contain" />
+                </el-form-item>
+                <el-form-item v-if="settingsForm.promoBannerEnabled" label="横幅跳转页面">
+                  <el-input v-model="settingsForm.promoBannerLink" placeholder="可选，如 /pages/water-castle/water-castle" />
+                </el-form-item>
+                <el-form-item label="图文推荐">
+                  <el-switch v-model="settingsForm.recommendEnabled" active-text="开启" inactive-text="关闭" />
+                  <div style="color: #999; font-size: 12px; margin-top: 4px;">首页底部的图文推荐卡片区</div>
+                </el-form-item>
+                <el-form-item v-if="settingsForm.recommendEnabled" label="推荐标题">
+                  <el-input v-model="settingsForm.recommendTitle" placeholder="如：游玩攻略" />
                 </el-form-item>
                 <el-form-item>
                   <el-button type="primary" :loading="settingsSaving" @click="saveSettings">保存设置</el-button>
@@ -1620,6 +1701,7 @@
             { key: 'projects', label: '项目管理', icon: '🏰' },
             { key: 'productsMgmt', label: '商品管理', icon: '🎫' },
             { key: 'navMgmt', label: '导航管理', icon: '🧭' },
+            { key: 'recommendMgmt', label: '推荐管理', icon: '📸' },
             { key: 'pricingConfigs', label: '价格设置', icon: '💰' },
             { key: 'recharge_plans', label: '充值套餐', icon: '🎁' },
             { key: 'staff', label: '员工管理', icon: '👥' },
@@ -1677,6 +1759,16 @@
           navForm: { name: '', iconUrl: '', pagePath: '', sort: 1 },
           editingNavId: null,
           tempNavImageFile: null,
+
+          // 推荐管理
+          recommendData: [],
+          recommendDialogVisible: false,
+          recommendForm: { title: '', imageUrl: '', description: '', linkUrl: '', sort: 1 },
+          editingRecommendId: null,
+          tempRecommendImageFile: null,
+
+          // 活动横幅临时文件
+          tempPromoBannerFile: null,
 
           // 余额流水相关
           balanceLogsData: [],
@@ -1909,6 +2001,8 @@
             await this.loadProductsMgmt();
           } else if (key === 'navMgmt') {
             await this.loadNavItems();
+          } else if (key === 'recommendMgmt') {
+            await this.loadRecommendItems();
           } else {
             await this.loadData();
           }
@@ -2285,6 +2379,10 @@
         async saveSettings() {
           this.settingsSaving = true;
           try {
+            if (this.tempPromoBannerFile) {
+              this.settingsForm.promoBannerUrl = await this.uploadImage(this.tempPromoBannerFile);
+              this.tempPromoBannerFile = null;
+            }
             const data = { ...this.settingsForm };
             const docId = data._id;
             delete data._id;
@@ -2911,6 +3009,57 @@
           try { await ElMessageBox.confirm('确定删除该导航？', '警告', { type: 'warning' }); } catch { return; }
           await this.callAdminApi({ action: 'remove', collection: 'navItems', docId: row._id });
           this.loadNavItems();
+        },
+
+        // === 推荐管理 ===
+        async loadRecommendItems() {
+          const res = await this.callAdminApi({ action: 'query', collection: 'recommendItems', data: { orderBy: { field: 'sort', direction: 'asc' } } });
+          if (res.code === 200) { this.recommendData = res.data; }
+        },
+        showRecommendDialog(row) {
+          if (row) {
+            this.editingRecommendId = row._id;
+            this.recommendForm = { title: row.title, imageUrl: row.imageUrl || '', description: row.description || '', linkUrl: row.linkUrl || '', sort: row.sort || 1 };
+          } else {
+            this.editingRecommendId = null;
+            this.recommendForm = { title: '', imageUrl: '', description: '', linkUrl: '', sort: 1 };
+          }
+          this.tempRecommendImageFile = null;
+          this.recommendDialogVisible = true;
+        },
+        handleRecommendImageChange(file) {
+          this.tempRecommendImageFile = file.raw;
+          const reader = new FileReader();
+          reader.onload = (e) => { this.recommendForm.imageUrl = e.target.result; };
+          reader.readAsDataURL(file.raw);
+        },
+        async saveRecommend() {
+          if (this.tempRecommendImageFile) {
+            this.recommendForm.imageUrl = await this.uploadImage(this.tempRecommendImageFile);
+            this.tempRecommendImageFile = null;
+          }
+          const data = { ...this.recommendForm, enabled: true };
+          if (this.editingRecommendId) {
+            await this.callAdminApi({ action: 'update', collection: 'recommendItems', docId: this.editingRecommendId, data });
+          } else {
+            await this.callAdminApi({ action: 'add', collection: 'recommendItems', data });
+          }
+          this.recommendDialogVisible = false;
+          this.loadRecommendItems();
+        },
+        async toggleRecommendEnabled(row) {
+          await this.callAdminApi({ action: 'update', collection: 'recommendItems', docId: row._id, data: { enabled: row.enabled } });
+        },
+        async deleteRecommend(row) {
+          try { await ElMessageBox.confirm('确定删除该推荐？', '警告', { type: 'warning' }); } catch { return; }
+          await this.callAdminApi({ action: 'remove', collection: 'recommendItems', docId: row._id });
+          this.loadRecommendItems();
+        },
+        handlePromoBannerChange(file) {
+          this.tempPromoBannerFile = file.raw;
+          const reader = new FileReader();
+          reader.onload = (e) => { this.settingsForm.promoBannerUrl = e.target.result; };
+          reader.readAsDataURL(file.raw);
         },
 
         // === 订单导出 ===
