@@ -9,6 +9,7 @@
     "pages/recharge/recharge",
     "pages/recharge-logs/recharge-logs",
     "pages/water-castle/water-castle",
+    "pages/boat-list/boat-list",
     "pages/product-detail/product-detail",
     "pages/product-order/product-order",
     "pages/announcement-detail/announcement-detail",
@@ -36,12 +37,6 @@
         "text": "首页",
         "iconPath": "images/home.png",
         "selectedIconPath": "images/home-active.png"
-      },
-      {
-        "pagePath": "pages/water-castle/water-castle",
-        "text": "水上城堡",
-        "iconPath": "images/water-castle.png",
-        "selectedIconPath": "images/water-castle-active.png"
       },
       {
         "pagePath": "pages/order-list/order-list",

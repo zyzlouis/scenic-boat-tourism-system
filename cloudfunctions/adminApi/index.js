@@ -47,7 +47,7 @@ exports.main = async (event, context) => {
       'boatTypes', 'boats', 'staff', 'banners',
       'announcements', 'pricingConfigs', 'app_settings',
       'orders', 'users', 'verificationLogs', 'recharge_plans',
-      'projects', 'products'
+      'projects', 'products', 'navItems'
     ]
 
     if (!allowedCollections.includes(collection)) {

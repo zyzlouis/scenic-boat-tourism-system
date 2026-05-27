@@ -1,0 +1,58 @@
+<view class="container">
+  <view class="header">
+    <view class="title">游船租赁</view>
+    <view class="subtitle">选择您心仪的船型，开启美好游湖之旅</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading-container">
+    <van-loading size="48rpx" type="spinner" color="#1989fa">加载中...</van-loading>
+  </view>
+
+  <view wx:else class="boat-list">
+    <view
+      wx:for="{{boatTypes}}"
+      wx:key="id"
+      class="boat-card"
+      data-id="{{item.id}}"
+      data-code="{{item.code}}"
+      bindtap="goToBoatDetail"
+    >
+      <view class="boat-image">
+        <image src="{{item.imageUrl || '/images/boat-placeholder.png'}}" mode="aspectFill" />
+      </view>
+      <view class="boat-info">
+        <view class="boat-name">{{item.name}}</view>
+        <view class="boat-desc">{{item.description}}</view>
+        <view class="boat-capacity">
+          <text class="icon">👥</text>
+          <text>最多{{item.maxCapacity}}人</text>
+        </view>
+        <view class="price-info">
+          <view class="price-row">
+            <text class="label">门票价格：</text>
+            <text class="price">¥{{item.pricing.basePrice}}</text>
+          </view>
+          <view class="price-row">
+            <text class="label">押金：</text>
+            <text class="price">¥{{item.pricing.depositAmount}}</text>
+          </view>
+          <view class="price-row">
+            <text class="label">包含时长：</text>
+            <text>{{item.pricing.includedMinutes}}分钟</text>
+          </view>
+          <view class="price-row">
+            <text class="label">超时费率：</text>
+            <text>¥{{item.pricing.overtimeRate}}/分钟</text>
+          </view>
+        </view>
+        <view class="boat-action">
+          <van-button type="primary" size="large" round custom-class="rent-button">立即租赁</van-button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{!loading && boatTypes.length === 0}}" class="empty-container">
+    <van-empty description="暂无可租赁的船型" />
+  </view>
+</view>

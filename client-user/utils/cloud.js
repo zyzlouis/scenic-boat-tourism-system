@@ -77,6 +77,10 @@ function verifyProduct(orderId, staffId) {
   return callFunction('verifyProduct', { orderId, staffId })
 }
 
+function getNavItems() {
+  return callFunction('getNavItems', {})
+}
+
 module.exports = {
   callFunction,
   getBoatTypes,
@@ -85,5 +89,6 @@ module.exports = {
   getOrderList,
   getProjects,
   createProductOrder,
-  verifyProduct
+  verifyProduct,
+  getNavItems
 }

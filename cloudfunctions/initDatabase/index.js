@@ -484,6 +484,30 @@ const productsData = [
   }
 ]
 
+// 11. 导航项数据
+const navItemsData = [
+  {
+    _id: 'nav_boat',
+    name: '游船租赁',
+    iconUrl: '',
+    pagePath: '/pages/boat-list/boat-list',
+    sort: 1,
+    enabled: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  },
+  {
+    _id: 'nav_water_castle',
+    name: '水上城堡',
+    iconUrl: '',
+    pagePath: '/pages/water-castle/water-castle',
+    sort: 2,
+    enabled: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }
+]
+
 // ===== 初始化函数 =====
 
 exports.main = async (event, context) => {
@@ -501,10 +525,12 @@ exports.main = async (event, context) => {
       return await checkDatabase()
     } else if (action === 'initProducts') {
       return await initProductCollections()
+    } else if (action === 'initNav') {
+      return await initNavCollections()
     } else {
       return {
         success: false,
-        message: '无效的操作类型，支持：init（初始化）、clear（清空）、check（检查）、initProducts（初始化商品集合）'
+        message: '无效的操作类型，支持：init（初始化）、clear（清空）、check（检查）、initProducts（初始化商品集合）、initNav（初始化导航集合）'
       }
     }
   } catch (error) {
@@ -645,7 +671,7 @@ async function clearAllCollections() {
 
 // 检查数据库状态
 async function checkDatabase() {
-  const collections = ['boatTypes', 'pricingConfigs', 'boats', 'staff', 'banners', 'announcements', 'app_settings', 'recharge_plans', 'projects', 'products']
+  const collections = ['boatTypes', 'pricingConfigs', 'boats', 'staff', 'banners', 'announcements', 'app_settings', 'recharge_plans', 'projects', 'products', 'navItems']
   const results = {}
 
   for (const collectionName of collections) {
@@ -675,7 +701,7 @@ async function checkDatabase() {
 
 // 创建运行时集合（确保集合存在，即使是空的）
 async function createRuntimeCollections() {
-  const runtimeCollections = ['users', 'orders', 'recharge_orders', 'balance_logs', 'verificationLogs', 'projects', 'products']
+  const runtimeCollections = ['users', 'orders', 'recharge_orders', 'balance_logs', 'verificationLogs', 'projects', 'products', 'navItems']
   const results = {}
 
   for (const collectionName of runtimeCollections) {
@@ -729,4 +755,12 @@ async function initProductCollections() {
     message: '商品集合初始化成功',
     results: results
   }
+}
+
+async function initNavCollections() {
+  const results = {}
+  console.log('开始初始化导航集合...')
+  results.navItems = await initCollection('navItems', navItemsData)
+  console.log('导航集合初始化完成！')
+  return { success: true, message: '导航集合初始化成功', results }
 }

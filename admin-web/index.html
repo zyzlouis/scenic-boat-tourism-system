@@ -1094,6 +1094,55 @@
           </div>
 
           <!-- 系统设置 -->
+          <!-- 导航管理 -->
+          <div v-if="currentMenu === 'navMgmt'">
+            <div class="page-header">
+              <h2 class="page-title">导航管理</h2>
+              <el-button type="primary" @click="showNavDialog()">新增导航</el-button>
+            </div>
+            <div class="data-table">
+              <el-table :data="navItemsData" stripe>
+                <el-table-column label="图标" width="80">
+                  <template #default="scope">
+                    <img v-if="scope.row.iconUrl" :src="scope.row.iconUrl" style="width:40px;height:40px;object-fit:contain" />
+                    <span v-else style="display:inline-block;width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-align:center;line-height:40px;font-size:16px">{{(scope.row.name || '?')[0]}}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="name" label="名称" min-width="120" />
+                <el-table-column prop="pagePath" label="跳转页面" min-width="200" />
+                <el-table-column prop="sort" label="排序" width="80" />
+                <el-table-column label="状态" width="80">
+                  <template #default="scope">
+                    <el-switch v-model="scope.row.enabled" @change="toggleNavEnabled(scope.row)" />
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="160">
+                  <template #default="scope">
+                    <el-button size="small" @click="showNavDialog(scope.row)">编辑</el-button>
+                    <el-button size="small" type="danger" @click="deleteNav(scope.row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <el-dialog :title="editingNavId ? '编辑导航' : '新增导航'" v-model="navDialogVisible" width="500px">
+              <el-form :model="navForm" label-width="100px">
+                <el-form-item label="名称"><el-input v-model="navForm.name" placeholder="如：游船租赁" /></el-form-item>
+                <el-form-item label="跳转页面"><el-input v-model="navForm.pagePath" placeholder="如：/pages/boat-list/boat-list" /></el-form-item>
+                <el-form-item label="排序"><el-input-number v-model="navForm.sort" :min="1" /></el-form-item>
+                <el-form-item label="导航图标">
+                  <el-upload :action="''" :auto-upload="false" :on-change="handleNavImageChange" :show-file-list="false" accept="image/*">
+                    <el-button size="small" type="primary">选择图标</el-button>
+                  </el-upload>
+                  <img v-if="navForm.iconUrl" :src="navForm.iconUrl" style="width:60px;height:60px;margin-top:10px;object-fit:contain" />
+                </el-form-item>
+              </el-form>
+              <template #footer>
+                <el-button @click="navDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveNav">保存</el-button>
+              </template>
+            </el-dialog>
+          </div>
+
           <div v-if="currentMenu === 'settings'">
             <div class="page-header">
               <div class="page-title">系统设置</div>
@@ -1554,6 +1603,7 @@
             { key: 'boats', label: '船只管理', icon: '⛵' },
             { key: 'projects', label: '项目管理', icon: '🏰' },
             { key: 'productsMgmt', label: '商品管理', icon: '🎫' },
+            { key: 'navMgmt', label: '导航管理', icon: '🧭' },
             { key: 'pricingConfigs', label: '价格设置', icon: '💰' },
             { key: 'recharge_plans', label: '充值套餐', icon: '🎁' },
             { key: 'staff', label: '员工管理', icon: '👥' },
@@ -1604,6 +1654,13 @@
           productForm: { projectId: '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0 },
           editingProductId: null,
           productFilterProjectId: '',
+
+          // 导航管理
+          navItemsData: [],
+          navDialogVisible: false,
+          navForm: { name: '', iconUrl: '', pagePath: '', sort: 1 },
+          editingNavId: null,
+          tempNavImageFile: null,
 
           // 余额流水相关
           balanceLogsData: [],
@@ -1834,6 +1891,8 @@
           } else if (key === 'productsMgmt') {
             await this.loadProjects();
             await this.loadProductsMgmt();
+          } else if (key === 'navMgmt') {
+            await this.loadNavItems();
           } else {
             await this.loadData();
           }
@@ -2791,6 +2850,51 @@
           try { await ElMessageBox.confirm('确定删除该商品？', '警告', { type: 'warning' }); } catch { return; }
           await this.callAdminApi({ action: 'remove', collection: 'products', docId: row._id });
           this.loadProductsMgmt();
+        },
+
+        // === 导航管理 ===
+        async loadNavItems() {
+          const res = await this.callAdminApi({ action: 'query', collection: 'navItems', data: { orderBy: { field: 'sort', direction: 'asc' } } });
+          if (res.code === 200) { this.navItemsData = res.data; }
+        },
+        showNavDialog(row) {
+          if (row) {
+            this.editingNavId = row._id;
+            this.navForm = { name: row.name, iconUrl: row.iconUrl || '', pagePath: row.pagePath || '', sort: row.sort || 1 };
+          } else {
+            this.editingNavId = null;
+            this.navForm = { name: '', iconUrl: '', pagePath: '', sort: 1 };
+          }
+          this.tempNavImageFile = null;
+          this.navDialogVisible = true;
+        },
+        handleNavImageChange(file) {
+          this.tempNavImageFile = file.raw;
+          const reader = new FileReader();
+          reader.onload = (e) => { this.navForm.iconUrl = e.target.result; };
+          reader.readAsDataURL(file.raw);
+        },
+        async saveNav() {
+          if (this.tempNavImageFile) {
+            this.navForm.iconUrl = await this.uploadImage(this.tempNavImageFile);
+            this.tempNavImageFile = null;
+          }
+          const data = { ...this.navForm, enabled: true };
+          if (this.editingNavId) {
+            await this.callAdminApi({ action: 'update', collection: 'navItems', docId: this.editingNavId, data });
+          } else {
+            await this.callAdminApi({ action: 'add', collection: 'navItems', data });
+          }
+          this.navDialogVisible = false;
+          this.loadNavItems();
+        },
+        async toggleNavEnabled(row) {
+          await this.callAdminApi({ action: 'update', collection: 'navItems', docId: row._id, data: { enabled: row.enabled } });
+        },
+        async deleteNav(row) {
+          try { await ElMessageBox.confirm('确定删除该导航？', '警告', { type: 'warning' }); } catch { return; }
+          await this.callAdminApi({ action: 'remove', collection: 'navItems', docId: row._id });
+          this.loadNavItems();
         },
 
         // === 订单导出 ===
