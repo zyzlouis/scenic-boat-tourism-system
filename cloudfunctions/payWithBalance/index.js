@@ -74,21 +74,38 @@ exports.main = async (event, context) => {
       }
     })
 
-    // 4. 更新订单状态为已支付
-    const verificationCode = generateVerificationCode()
-    await db.collection('orders').doc(orderId).update({
-      data: {
-        status: 'paid',
-        verificationCode: verificationCode,
-        'payment.method': 'balance',
-        'payment.paidAt': now,
-        'payment.transactionId': `BAL_${order.orderNo}`,
-        updatedAt: now
-      }
-    })
+    // 4. 更新订单状态
+    const isProductOrder = order.orderType === 'product'
+    let updateData = {
+      'payment.method': 'balance',
+      'payment.paidAt': now,
+      'payment.transactionId': `BAL_${order.orderNo}`,
+      updatedAt: now
+    }
+
+    let verificationCode = null
+    if (isProductOrder && !order.needVerification) {
+      updateData.status = 'completed'
+      updateData.completedAt = now
+    } else {
+      verificationCode = generateVerificationCode()
+      updateData.status = 'paid'
+      updateData.verificationCode = verificationCode
+    }
+
+    if (isProductOrder && order.needVerification && !order.verificationDeadline) {
+      const days = order.verificationDays || 15
+      updateData.verificationDeadline = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+    }
+
+    await db.collection('orders').doc(orderId).update({ data: updateData })
 
     // 5. 写入 balance_logs 流水记录
     const { data: updatedUser } = await db.collection('users').doc(user._id).get()
+
+    const orderName = isProductOrder
+      ? (order.productName || '商品')
+      : (order.boatType ? order.boatType.name : '游船')
 
     await db.collection('balance_logs').add({
       data: {
@@ -99,7 +116,7 @@ exports.main = async (event, context) => {
         beforeBalance: user.balance,
         afterBalance: updatedUser.balance,
         relatedOrderNo: order.orderNo,
-        description: `支付游船订单（${order.boatType.name}）`,
+        description: `支付订单（${orderName}）`,
         sort: Date.now(),
         enabled: true,
         createdAt: now,
