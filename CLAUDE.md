@@ -31,28 +31,28 @@
 
 ## 数据库集合（12 个）
 
-- 可编辑(10)：boatTypes / pricingConfigs / boats / staff / banners / announcements / app_settings / recharge_plans / projects / products
+- 可编辑(12)：boatTypes / pricingConfigs / boats / staff / banners / announcements / app_settings / recharge_plans / projects / products / navItems / recommendItems
 - 只读(4)：users / orders / recharge_orders / balance_logs / verificationLogs
 
 ## 实时进度
 
-> 更新于 2026-05-26
+> 更新于 2026-05-27
 
 - **截至 2026-04-12**：核心闭环 + 真实微信支付 + 会员储值 + 后台管理(admin-web) + 订单/船型分享二维码 全部完成，已上线运营
 - **2026-04-12 ~ 05-25**：停滞，等客户反馈
-- **2026-05-26**：完成商品销售功能 + 订单导出
-  - 新增 projects / products 两个数据集合，initDatabase 支持自动初始化
-  - 新增 getProjects / createProductOrder / verifyProduct 三个云函数
-  - 修改 wechatPayCallback / scanCode / wechatPay / refundOrder / getOrderList / adminApi 六个云函数
-  - 用户端：首页商品展示、商品详情页、商品订单详情页、订单列表 Tab 切换
-  - 员工端：扫码支持商品一次性核销
-  - 后台：项目管理、商品管理、订单类型筛选、Excel 导出
+- **2026-05-26 ~ 05-27**：完成客户新需求迭代
+  - 商品销售：projects/products 集合 + 3个新云函数 + 用户端购买/核销/退款全流程 + 员工端扫码核销
+  - 订单导出：后台 Excel 导出（SheetJS）
+  - 首页改版：导航入口页（轮播图+宫格导航+公告+活动横幅+图文推荐+景区信息）
+  - 游船列表拆为独立 boat-list 页面，水上城堡独立 water-castle 页面
+  - 后台新增：项目管理、商品管理、导航管理、推荐管理（含图片上传）
+  - 系统设置新增：活动横幅开关、图文推荐开关（默认关闭）
+  - TabBar：首页/订单/我的（3个）
+  - getAppConfig 改为返回完整配置，后续新增字段不需要改云函数
 - **下一步**：
-  1. 部署云函数（微信开发者工具右键上传）
-  2. 调用 initDatabase `{ action: 'initProducts' }` 创建新集合
-  3. 在云开发控制台设置 projects / products 集合权限
-  4. 小程序端上传提交审核（注意 rechargeEnabled=false）
-  5. 在开发者工具中做端到端测试
+  1. 推送代码到远端仓库
+  2. 端到端测试商品购买→支付→核销完整流程
+  3. 小程序提交审核（注意 rechargeEnabled=false）
 
 ## 关键文档索引
 
