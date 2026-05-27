@@ -977,6 +977,9 @@
                 <el-table-column label="营业时间" width="160">
                   <template #default="scope">{{scope.row.openTime || ''}} - {{scope.row.closeTime || ''}}</template>
                 </el-table-column>
+                <el-table-column label="排序" width="70">
+                  <template #default="scope">{{scope.row.sort}}</template>
+                </el-table-column>
                 <el-table-column label="状态" width="100">
                   <template #default="scope">
                     <el-switch v-model="scope.row.enabled" @change="toggleProjectEnabled(scope.row)" />
@@ -994,6 +997,7 @@
               <el-form :model="projectForm" label-width="100px">
                 <el-form-item label="项目名称"><el-input v-model="projectForm.name" placeholder="如：水上城堡" /></el-form-item>
                 <el-form-item label="描述"><el-input v-model="projectForm.description" type="textarea" :rows="2" /></el-form-item>
+                <el-form-item label="排序"><el-input-number v-model="projectForm.sort" :min="1" /></el-form-item>
                 <el-form-item label="项目图片">
                   <el-upload :action="''" :auto-upload="false" :on-change="handleProjectImageChange" :show-file-list="false" accept="image/*">
                     <el-button size="small" type="primary">选择图片</el-button>
@@ -1055,6 +1059,9 @@
                     <el-tag v-else type="info" size="small">无需核销</el-tag>
                   </template>
                 </el-table-column>
+                <el-table-column label="排序" width="70">
+                  <template #default="scope">{{scope.row.sort}}</template>
+                </el-table-column>
                 <el-table-column label="上下架" width="80">
                   <template #default="scope">
                     <el-switch v-model="scope.row.enabled" @change="toggleProductEnabled(scope.row)" />
@@ -1077,6 +1084,7 @@
                 </el-form-item>
                 <el-form-item label="商品名称"><el-input v-model="productForm.name" placeholder="如：单人儿童票" /></el-form-item>
                 <el-form-item label="描述"><el-input v-model="productForm.description" type="textarea" :rows="2" /></el-form-item>
+                <el-form-item label="排序"><el-input-number v-model="productForm.sort" :min="1" /></el-form-item>
                 <el-form-item label="价格"><el-input-number v-model="productForm.price" :min="0" :precision="1" :step="1" /></el-form-item>
                 <el-form-item label="需要核销"><el-switch v-model="productForm.needVerification" /></el-form-item>
                 <el-form-item v-if="productForm.needVerification" label="核销有效天数"><el-input-number v-model="productForm.verificationDays" :min="1" :max="365" /></el-form-item>
@@ -1652,14 +1660,14 @@
           projectsData: [],
           projectsTotal: 0,
           projectDialogVisible: false,
-          projectForm: { name: '', description: '', imageUrl: '', openTime: '09:00', closeTime: '19:00' },
+          projectForm: { name: '', description: '', imageUrl: '', openTime: '09:00', closeTime: '19:00', sort: 1 },
           editingProjectId: null,
 
           // 商品管理
           productsMgmtData: [],
           productsMgmtTotal: 0,
           productDialogVisible: false,
-          productForm: { projectId: '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0 },
+          productForm: { projectId: '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0, sort: 1 },
           editingProductId: null,
           productFilterProjectId: '',
 
@@ -2775,10 +2783,10 @@
         showProjectDialog(row) {
           if (row) {
             this.editingProjectId = row._id;
-            this.projectForm = { name: row.name, description: row.description || '', imageUrl: row.imageUrl || '', openTime: row.openTime || '09:00', closeTime: row.closeTime || '19:00' };
+            this.projectForm = { name: row.name, description: row.description || '', imageUrl: row.imageUrl || '', openTime: row.openTime || '09:00', closeTime: row.closeTime || '19:00', sort: row.sort || 1 };
           } else {
             this.editingProjectId = null;
-            this.projectForm = { name: '', description: '', imageUrl: '', openTime: '09:00', closeTime: '19:00' };
+            this.projectForm = { name: '', description: '', imageUrl: '', openTime: '09:00', closeTime: '19:00', sort: 1 };
           }
           this.tempProjectImageFile = null;
           this.projectDialogVisible = true;
@@ -2822,10 +2830,10 @@
         showProductDialog(row) {
           if (row) {
             this.editingProductId = row._id;
-            this.productForm = { projectId: row.projectId, name: row.name, description: row.description || '', imageUrl: row.imageUrl || '', price: row.price, needVerification: row.needVerification, verificationDays: row.verificationDays || 15, stock: row.stock || 0 };
+            this.productForm = { projectId: row.projectId, name: row.name, description: row.description || '', imageUrl: row.imageUrl || '', price: row.price, needVerification: row.needVerification, verificationDays: row.verificationDays || 15, stock: row.stock || 0, sort: row.sort || 1 };
           } else {
             this.editingProductId = null;
-            this.productForm = { projectId: this.productFilterProjectId || '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0 };
+            this.productForm = { projectId: this.productFilterProjectId || '', name: '', description: '', imageUrl: '', price: 0, needVerification: true, verificationDays: 15, stock: 0, sort: 1 };
           }
           this.tempProductImageFile = null;
           this.productDialogVisible = true;
