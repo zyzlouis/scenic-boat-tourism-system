@@ -42,19 +42,7 @@ exports.main = async (event, context) => {
     return {
       code: 200,
       message: '获取配置成功',
-      data: {
-        rechargeEnabled: appConfig.rechargeEnabled || false, // 储值功能开关，默认为false
-        scenicName: appConfig.scenicName || '',
-        contactPhone: appConfig.contactPhone || '',
-        openTime: appConfig.openTime || '',
-        closeTime: appConfig.closeTime || '',
-        refundRules: appConfig.refundRules || '',
-        safetyNotice: appConfig.safetyNotice || '',
-        aboutUs: appConfig.aboutUs || '',
-        logoUrl: appConfig.logoUrl || '',
-        autoRefundEnabled: appConfig.autoRefundEnabled !== false, // 自动退款开关，默认为true
-        autoRefundDays: appConfig.autoRefundDays || 7  // 自动退款天数，默认7天
-      }
+      data: appConfig
     }
   } catch (error) {
     console.error('获取配置失败:', error)
