@@ -962,6 +962,12 @@
             </div>
             <div class="data-table">
               <el-table :data="projectsData" stripe>
+                <el-table-column label="图片" width="80">
+                  <template #default="scope">
+                    <img v-if="scope.row.imageUrl" :src="scope.row.imageUrl" class="image-preview" />
+                    <span v-else style="color:#ccc;font-size:12px">无图片</span>
+                  </template>
+                </el-table-column>
                 <el-table-column prop="name" label="项目名称" />
                 <el-table-column prop="description" label="描述" />
                 <el-table-column label="营业时间" width="160">
@@ -1008,17 +1014,34 @@
             </div>
             <div class="data-table">
               <el-table :data="productsMgmtData" stripe>
-                <el-table-column prop="name" label="商品名称" />
-                <el-table-column label="价格" width="100">
+                <el-table-column label="图片" width="80">
+                  <template #default="scope">
+                    <img v-if="scope.row.imageUrl" :src="scope.row.imageUrl" class="image-preview" />
+                    <span v-else style="color:#ccc;font-size:12px">无图片</span>
+                  </template>
+                </el-table-column>
+                <el-table-column label="所属项目" width="120">
+                  <template #default="scope">
+                    {{(projectsData.find(p => p._id === scope.row.projectId) || {}).name || '-'}}
+                  </template>
+                </el-table-column>
+                <el-table-column label="商品名称" min-width="140">
+                  <template #default="scope">
+                    <div>{{scope.row.name}}</div>
+                    <div v-if="scope.row.description" style="color:#999;font-size:12px;margin-top:2px">{{scope.row.description}}</div>
+                  </template>
+                </el-table-column>
+                <el-table-column label="价格" width="90">
                   <template #default="scope">¥{{scope.row.price}}</template>
                 </el-table-column>
-                <el-table-column label="库存" width="100">
+                <el-table-column label="库存" width="80">
                   <template #default="scope">{{scope.row.stock === 0 ? '不限' : scope.row.stock}}</template>
                 </el-table-column>
-                <el-table-column prop="soldCount" label="已售" width="80" />
-                <el-table-column label="需核销" width="80">
+                <el-table-column prop="soldCount" label="已售" width="70" />
+                <el-table-column label="核销" width="100">
                   <template #default="scope">
-                    <el-tag :type="scope.row.needVerification ? 'primary' : 'info'" size="small">{{scope.row.needVerification ? '是' : '否'}}</el-tag>
+                    <span v-if="scope.row.needVerification">{{scope.row.verificationDays || 15}}天有效</span>
+                    <el-tag v-else type="info" size="small">无需核销</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column label="上下架" width="80">
