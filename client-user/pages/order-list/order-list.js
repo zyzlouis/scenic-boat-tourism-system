@@ -10,7 +10,6 @@ Page({
     total: 0,
     loading: true,
     hasMore: true,
-    activeTab: 'boat',
     formatTime: util.formatTime,
     formatMoney: util.formatMoney,
     getOrderStatusText: util.getOrderStatusText,
@@ -22,13 +21,9 @@ Page({
   },
 
   onShow() {
-    // 每次显示页面时，刷新第一页数据
     this.refreshOrderList();
   },
 
-  /**
-   * 加载订单列表
-   */
   async loadOrderList() {
     if (!this.data.hasMore) {
       return;
@@ -37,7 +32,7 @@ Page({
     try {
       this.setData({ loading: true });
 
-      const res = await cloud.getOrderList(this.data.page, this.data.pageSize, null, this.data.activeTab);
+      const res = await cloud.getOrderList(this.data.page, this.data.pageSize);
 
       if (res.code === 200) {
         const { list, total, hasMore } = res.data;
@@ -62,9 +57,6 @@ Page({
     }
   },
 
-  /**
-   * 刷新订单列表
-   */
   async refreshOrderList() {
     this.setData({
       page: 1,
@@ -73,9 +65,6 @@ Page({
     await this.loadOrderList();
   },
 
-  /**
-   * 查看订单详情
-   */
   gotoOrderDetail(e) {
     const { id, type } = e.currentTarget.dataset;
     if (type === 'product') {
@@ -85,27 +74,11 @@ Page({
     }
   },
 
-  onTabChange(e) {
-    this.setData({
-      activeTab: e.detail.name || e.detail,
-      page: 1,
-      hasMore: true,
-      orders: []
-    });
-    this.loadOrderList();
-  },
-
-  /**
-   * 下拉刷新
-   */
   async onPullDownRefresh() {
     await this.refreshOrderList();
     wx.stopPullDownRefresh();
   },
 
-  /**
-   * 上拉加载更多
-   */
   async onReachBottom() {
     if (this.data.hasMore && !this.data.loading) {
       this.setData({
@@ -115,22 +88,16 @@ Page({
     }
   },
 
-  /**
-   * 分享到微信好友
-   */
   onShareAppMessage() {
     return {
-      title: '翠屏湖景区游船 - 在线预约',
+      title: '翠屏湖水上乐园',
       path: '/pages/index/index'
     }
   },
 
-  /**
-   * 分享到朋友圈
-   */
   onShareTimeline() {
     return {
-      title: '翠屏湖景区游船 - 在线预约'
+      title: '翠屏湖水上乐园'
     }
   }
 });

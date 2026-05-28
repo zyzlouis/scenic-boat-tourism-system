@@ -1,11 +1,6 @@
 <!--pages/order-list/order-list.wxml-->
 <wxs module="filters" src="../../utils/filters.wxs"></wxs>
 <view class="container">
-  <van-tabs active="{{activeTab}}" bind:change="onTabChange" color="#1989fa">
-    <van-tab title="游船订单" name="boat"></van-tab>
-    <van-tab title="商品订单" name="product"></van-tab>
-  </van-tabs>
-
   <!-- 订单列表 -->
   <view class="order-list">
     <view
@@ -18,7 +13,12 @@
     >
       <!-- 订单头部 -->
       <view class="order-header">
-        <view class="order-no">订单号：{{item.orderNo}}</view>
+        <view class="order-no-row">
+          <view class="order-type-tag {{item.orderType === 'product' ? 'tag-product' : 'tag-boat'}}">
+            {{item.orderType === 'product' ? '商品' : '游船'}}
+          </view>
+          <view class="order-no">{{item.orderNo}}</view>
+        </view>
         <view
           class="order-status"
           style="color: {{filters.getOrderStatusColor(item.status)}}"
@@ -46,8 +46,8 @@
         {{filters.formatTime(item.createdAt)}}
       </view>
 
-      <!-- 已完成订单显示最终金额 -->
-      <view wx:if="{{item.status === 'completed'}}" class="order-footer">
+      <!-- 已完成订单显示最终金额（仅游船） -->
+      <view wx:if="{{item.status === 'completed' && item.orderType !== 'product' && item.finalAmount}}" class="order-footer">
         <view class="final-amount">
           <text class="label">最终费用：</text>
           <text class="value">¥{{filters.formatMoney(item.finalAmount)}}</text>

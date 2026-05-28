@@ -74,7 +74,7 @@ exports.main = async (event, context) => {
       }
     })
 
-    // 4. 更新订单状态
+    // 4. 更新订单状态（如果失败则回滚余额）
     const isProductOrder = order.orderType === 'product'
     let updateData = {
       'payment.method': 'balance',
@@ -98,7 +98,15 @@ exports.main = async (event, context) => {
       updateData.verificationDeadline = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
     }
 
-    await db.collection('orders').doc(orderId).update({ data: updateData })
+    try {
+      await db.collection('orders').doc(orderId).update({ data: updateData })
+    } catch (orderUpdateError) {
+      console.error('订单更新失败，回滚余额:', orderUpdateError)
+      await db.collection('users').doc(user._id).update({
+        data: { balance: _.inc(order.totalAmount), updatedAt: new Date() }
+      })
+      return { success: false, message: '支付失败，余额已退回' }
+    }
 
     // 5. 写入 balance_logs 流水记录
     const { data: updatedUser } = await db.collection('users').doc(user._id).get()

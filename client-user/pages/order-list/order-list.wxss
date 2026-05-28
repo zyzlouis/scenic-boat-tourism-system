@@ -21,6 +21,29 @@
   border-bottom: 1rpx solid #eeeeee;
 }
 
+.order-no-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.order-type-tag {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 6rpx;
+  flex-shrink: 0;
+}
+
+.tag-boat {
+  background: #e6f7ff;
+  color: #1890ff;
+}
+
+.tag-product {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
 .order-no {
   font-size: 24rpx;
   color: #999999;

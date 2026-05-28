@@ -217,12 +217,16 @@ Page({
       wx.hideLoading()
 
       if (res.result.success) {
+        const hasCode = !!res.result.verificationCode
+        const contentText = hasCode
+          ? `核销码：${res.result.verificationCode}\n剩余余额：¥${Number(res.result.balance || 0).toFixed(2)}\n\n请出示核销码给工作人员`
+          : `支付完成\n剩余余额：¥${Number(res.result.balance || 0).toFixed(2)}`
+
         wx.showModal({
           title: '支付成功',
-          content: `核销码：${res.result.verificationCode}\n剩余余额：¥${Number(res.result.balance || 0).toFixed(2)}\n\n请前往码头出示核销码发船`,
+          content: contentText,
           showCancel: false,
           success: () => {
-            // 跳转到订单详情
             const detailPage = this.data.order.orderType === 'product'
               ? '/pages/product-order/product-order'
               : '/pages/order-detail/order-detail'

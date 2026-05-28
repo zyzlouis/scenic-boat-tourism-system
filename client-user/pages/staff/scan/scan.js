@@ -237,9 +237,6 @@ ${data.overtimeFee > 0 ? `超时费用：¥${data.overtimeFee}` : ''}
     }
   },
 
-  /**
-   * 退出登录
-   */
   showProductVerify(data) {
     const deadlineStr = data.verificationDeadline
       ? `\n有效期至：${util.formatTime(data.verificationDeadline)}`
