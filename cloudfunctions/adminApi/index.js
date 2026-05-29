@@ -8,6 +8,15 @@ cloud.init({
 const db = cloud.database()
 const _ = db.command
 
+// 集合英文名 → 中文显示名（仅用于操作日志可读性）
+const MODULE_NAMES = {
+  boatTypes: '船型', boats: '船只', staff: '员工', banners: '轮播图',
+  announcements: '公告', pricingConfigs: '价格设置', app_settings: '系统设置',
+  orders: '订单', users: '用户', verificationLogs: '核销记录',
+  recharge_plans: '充值套餐', projects: '项目', products: '商品',
+  navItems: '导航', recommendItems: '推荐'
+}
+
 /**
  * 后台管理统一API
  * 云函数拥有管理员权限，不受数据库安全规则限制
@@ -102,11 +111,51 @@ exports.main = async (event, context) => {
       }
 
       case 'remove': {
-        // 删除记录
+        // 删除记录（删除前留快照 + 写删除日志）
         if (!docId) {
           return { code: 400, message: '缺少文档ID' }
         }
+
+        // 1. 删除前取完整快照（用于审计/误删恢复）；取不到不阻断删除
+        let snapshot = null
+        try {
+          const snapRes = await db.collection(collection).doc(docId).get()
+          snapshot = snapRes.data
+        } catch (e) {
+          console.warn('删除前取快照失败（非致命）:', e.message)
+        }
+
+        // 2. 执行删除
         await db.collection(collection).doc(docId).remove()
+
+        // 3. 写删除日志（失败不影响删除结果）
+        try {
+          let staffName = '未知'
+          if (staffId) {
+            const staffRes = await db.collection('staff').doc(staffId).get()
+            staffName = staffRes.data?.realName || staffRes.data?.username || '未知'
+          }
+          const moduleName = MODULE_NAMES[collection] || collection
+          const targetName = snapshot
+            ? (snapshot.name || snapshot.title || snapshot.realName || snapshot.username || snapshot.orderNo || docId)
+            : docId
+          await db.collection('admin_logs').add({
+            data: {
+              staffId: staffId || '',
+              staffName: staffName,
+              action: 'delete',
+              module: moduleName,
+              target: String(targetName),
+              details: `删除${moduleName}：${targetName}`,
+              oldValue: snapshot ? JSON.stringify(snapshot) : '',
+              newValue: '',
+              createdAt: new Date()
+            }
+          })
+        } catch (logErr) {
+          console.error('写删除日志失败（非致命）:', logErr.message)
+        }
+
         return { code: 200, message: '删除成功' }
       }
 
