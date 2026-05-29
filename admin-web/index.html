@@ -1143,7 +1143,11 @@
             <el-dialog :title="editingNavId ? '编辑导航' : '新增导航'" v-model="navDialogVisible" width="500px">
               <el-form :model="navForm" label-width="100px">
                 <el-form-item label="名称"><el-input v-model="navForm.name" placeholder="如：游船租赁" /></el-form-item>
-                <el-form-item label="跳转页面"><el-input v-model="navForm.pagePath" placeholder="如：/pages/boat-list/boat-list" /></el-form-item>
+                <el-form-item label="跳转页面">
+                  <el-select v-model="navForm.pagePath" filterable allow-create default-first-option placeholder="选择页面" style="width:100%">
+                    <el-option v-for="p in pageOptions" :key="p.value" :label="p.label" :value="p.value" />
+                  </el-select>
+                </el-form-item>
                 <el-form-item label="排序"><el-input-number v-model="navForm.sort" :min="1" /></el-form-item>
                 <el-form-item label="导航图标">
                   <el-upload :action="''" :auto-upload="false" :on-change="handleNavImageChange" :show-file-list="false" accept="image/*">
@@ -1203,7 +1207,11 @@
               <el-form :model="recommendForm" label-width="100px">
                 <el-form-item label="标题"><el-input v-model="recommendForm.title" placeholder="如：两天一夜攻略" /></el-form-item>
                 <el-form-item label="描述"><el-input v-model="recommendForm.description" placeholder="简短描述" /></el-form-item>
-                <el-form-item label="跳转链接"><el-input v-model="recommendForm.linkUrl" placeholder="可选，小程序页面路径或网址" /></el-form-item>
+                <el-form-item label="跳转链接">
+                  <el-select v-model="recommendForm.linkUrl" filterable allow-create clearable default-first-option placeholder="选择页面，或手填外部网址" style="width:100%">
+                    <el-option v-for="p in pageOptions" :key="p.value" :label="p.label" :value="p.value" />
+                  </el-select>
+                </el-form-item>
                 <el-form-item label="排序"><el-input-number v-model="recommendForm.sort" :min="1" /></el-form-item>
                 <el-form-item label="封面图片">
                   <el-upload :action="''" :auto-upload="false" :on-change="handleRecommendImageChange" :show-file-list="false" accept="image/*">
@@ -1269,7 +1277,9 @@
                   <el-image v-if="settingsForm.promoBannerUrl" :src="settingsForm.promoBannerUrl" style="width:100%;max-width:400px;height:auto;margin-top:10px" fit="contain" />
                 </el-form-item>
                 <el-form-item v-if="settingsForm.promoBannerEnabled" label="横幅跳转页面">
-                  <el-input v-model="settingsForm.promoBannerLink" placeholder="可选，如 /pages/water-castle/water-castle" />
+                  <el-select v-model="settingsForm.promoBannerLink" filterable allow-create clearable default-first-option placeholder="选择页面" style="width:100%">
+                    <el-option v-for="p in pageOptions" :key="p.value" :label="p.label" :value="p.value" />
+                  </el-select>
                 </el-form-item>
                 <el-form-item label="图文推荐">
                   <el-switch v-model="settingsForm.recommendEnabled" active-text="开启" inactive-text="关闭" />
@@ -1435,7 +1445,10 @@
           </el-select>
         </el-form-item>
         <el-form-item label="链接地址" v-if="dialogForm.linkType !== 'none'">
-          <el-input v-model="dialogForm.linkUrl" placeholder="请输入链接地址" />
+          <el-select v-if="dialogForm.linkType === 'page'" v-model="dialogForm.linkUrl" filterable allow-create default-first-option placeholder="选择页面" style="width:100%">
+            <el-option v-for="p in pageOptions" :key="p.value" :label="p.label" :value="p.value" />
+          </el-select>
+          <el-input v-else v-model="dialogForm.linkUrl" placeholder="请输入外部链接" />
         </el-form-item>
         <el-form-item label="排序">
           <el-input-number v-model="dialogForm.sort" :min="0" />
@@ -1677,9 +1690,22 @@
     // 请在这里配置你的云开发环境ID
     const ENV_ID = 'cc-5gos3ctb46510316'; // 替换为你的环境ID
 
+    // 小程序可跳转页面清单（导航/轮播图/推荐/横幅 共用，新增页面只改这里）
+    const PAGE_OPTIONS = [
+      { label: '首页', value: '/pages/index/index' },
+      { label: '游船租赁', value: '/pages/boat-list/boat-list' },
+      { label: '水上城堡', value: '/pages/water-castle/water-castle' },
+      { label: '会员储值', value: '/pages/recharge/recharge' },
+      { label: '充值记录', value: '/pages/recharge-logs/recharge-logs' },
+      { label: '我的订单', value: '/pages/order-list/order-list' },
+      { label: '个人中心', value: '/pages/profile/profile' },
+    ];
+
     createApp({
       data() {
         return {
+          // 页面跳转下拉选项
+          pageOptions: PAGE_OPTIONS,
           // 登录相关
           isLoggedIn: false,
           loginForm: {

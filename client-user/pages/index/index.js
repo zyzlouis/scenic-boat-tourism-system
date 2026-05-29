@@ -6,6 +6,7 @@ Page({
     banners: [],
     announcements: [],
     navItems: [],
+    navClass: 'nav-cols-4',
     appConfig: null,
     recommendItems: [],
     loading: true
@@ -41,7 +42,11 @@ Page({
   async loadNavItems() {
     try {
       const res = await cloud.getNavItems();
-      this.setData({ navItems: res.data || [], loading: false });
+      const items = res.data || [];
+      const n = items.length;
+      // 按数量自适应：1~4 个用对应列数放大，5 个及以上每行 4 个换行
+      const navClass = 'nav-cols-' + (n >= 4 ? 4 : (n || 4));
+      this.setData({ navItems: items, navClass, loading: false });
     } catch (error) {
       console.error('加载导航失败:', error);
       this.setData({ loading: false });

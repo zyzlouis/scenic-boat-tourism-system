@@ -71,6 +71,28 @@
   color: #333;
 }
 
+/* 导航图标按数量自适应：数量越少图标/字体越大；5 个及以上用 4 列换行 */
+.nav-cols-1 .nav-item { width: 100%; }
+.nav-cols-2 .nav-item { width: 50%; }
+.nav-cols-3 .nav-item { width: 33.33%; }
+.nav-cols-4 .nav-item { width: 25%; }
+
+.nav-cols-1 .nav-icon-wrap { width: 160rpx; height: 160rpx; }
+.nav-cols-1 .nav-icon,
+.nav-cols-1 .nav-icon-placeholder { width: 130rpx; height: 130rpx; }
+.nav-cols-1 .nav-label { font-size: 32rpx; }
+
+.nav-cols-2 .nav-icon-wrap { width: 140rpx; height: 140rpx; }
+.nav-cols-2 .nav-icon,
+.nav-cols-2 .nav-icon-placeholder { width: 110rpx; height: 110rpx; }
+.nav-cols-2 .nav-label { font-size: 30rpx; }
+
+.nav-cols-3 .nav-icon-wrap { width: 120rpx; height: 120rpx; }
+.nav-cols-3 .nav-icon,
+.nav-cols-3 .nav-icon-placeholder { width: 90rpx; height: 90rpx; }
+.nav-cols-3 .nav-label { font-size: 28rpx; }
+/* nav-cols-4：沿用默认尺寸（icon-wrap 100rpx / icon 80rpx / label 24rpx），5 个以上复用此档换行 */
+
 /* 公告栏 */
 .notice-section {
   padding: 0 20rpx 20rpx;

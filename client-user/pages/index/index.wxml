@@ -26,7 +26,7 @@
 
   <!-- 导航宫格 -->
   <view class="nav-section">
-    <view class="nav-grid">
+    <view class="nav-grid {{navClass}}">
       <view
         wx:for="{{navItems}}"
         wx:key="_id"

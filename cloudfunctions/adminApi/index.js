@@ -523,10 +523,14 @@ exports.main = async (event, context) => {
         if (skip) query = query.skip(skip)
         query = query.limit(limit || 100)
 
-        const logsRes = await query.get()
-        const logsCount = await db.collection('admin_logs').where(whereCondition).count()
-
-        return { code: 200, data: logsRes.data, total: logsCount.total }
+        try {
+          const logsRes = await query.get()
+          const logsCount = await db.collection('admin_logs').where(whereCondition).count()
+          return { code: 200, data: logsRes.data, total: logsCount.total }
+        } catch (e) {
+          // admin_logs 集合不存在(-502005)或为空时，返回空列表，前端显示“暂无数据”而非报错
+          return { code: 200, data: [], total: 0 }
+        }
       }
 
       default:
