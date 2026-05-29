@@ -41,7 +41,7 @@
 
 - **截至 2026-04-12**：核心闭环 + 真实微信支付 + 会员储值 + 后台管理(admin-web) + 订单/船型分享二维码 全部完成，已上线运营
 - **2026-05-26 ~ 05-27**：商品销售迭代（详见下方归档要点）
-- **2026-05-28 ~ 05-29**：客户反馈三项（设计文档 `docs/superpowers/specs/2026-05-29-admin-link-picker-and-fixes-design.md`，已提交 8f1cf9e）
+- **2026-05-28 ~ 05-29**：客户反馈三项（设计文档 `docs/superpowers/specs/2026-05-29-admin-link-picker-and-fixes-design.md`，已提交 8a98828）
     - 后台跳转链接改下拉选择：新增 `PAGE_OPTIONS`(7个落地页) 常量，导航/轮播图(仅page类型)/推荐/系统设置横幅 共4处 `el-input`→`el-select`(filterable+allow-create)，存储值不变、老数据兼容
     - 操作日志报错修复：根因=云端无 `admin_logs` 集合；客户已手动建集合 + `adminApi.queryAdminLogs` 加 try/catch 容错返回空集（注：通用增删改未写日志，覆盖率低，留作未来增强项）
     - 首页导航图标按数量自适应：`index.js` 按 navItems.length 算 `navClass`，wxss 定义 1/2/3/4 档尺寸，≥5 个每行4个换行
@@ -55,9 +55,10 @@
   - TabBar：首页/订单/我的（3个）
   - getAppConfig 改为返回完整配置，后续新增字段不需要改云函数
 - **下一步**：
-  1. 推送代码到远端仓库
-  2. 端到端测试商品购买→支付→核销完整流程
-  3. 小程序提交审核（注意 rechargeEnabled=false）
+  1. 部署本批次：上传 `adminApi` 云函数 + admin-web 静态部署 + client-user 真机预览（4处下拉/操作日志不报错/导航图标自适应）
+  2. 推送代码到远端仓库
+  3. 端到端测试商品购买→支付→核销完整流程
+  4. 小程序提交审核（注意 rechargeEnabled=false）
 
 ## 关键文档索引
 
