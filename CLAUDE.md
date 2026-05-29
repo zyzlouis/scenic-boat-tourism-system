@@ -40,11 +40,11 @@
 > 更新于 2026-05-29
 
 - **截至 2026-04-12**：核心闭环 + 真实微信支付 + 会员储值 + 后台管理(admin-web) + 订单/船型分享二维码 全部完成，已上线运营
-- **2026-05-26 ~ 05-27**：商品销售迭代（详见下方归档要点）
-- **2026-05-28 ~ 05-29**：客户反馈三项（设计文档 `docs/superpowers/specs/2026-05-29-admin-link-picker-and-fixes-design.md`，已提交 8a98828）
-    - 后台跳转链接改下拉选择：新增 `PAGE_OPTIONS`(7个落地页) 常量，导航/轮播图(仅page类型)/推荐/系统设置横幅 共4处 `el-input`→`el-select`(filterable+allow-create)，存储值不变、老数据兼容
-    - 操作日志报错修复：根因=云端无 `admin_logs` 集合；客户已手动建集合 + `adminApi.queryAdminLogs` 加 try/catch 容错返回空集（注：通用增删改未写日志，覆盖率低，留作未来增强项）
-    - 首页导航图标按数量自适应：`index.js` 按 navItems.length 算 `navClass`，wxss 定义 1/2/3/4 档尺寸，≥5 个每行4个换行
+- **2026-05-28 ~ 05-29**：客户反馈（设计文档 `docs/superpowers/specs/2026-05-29-admin-link-picker-and-fixes-design.md`）
+    - 后台跳转链接改下拉选择（提交 8a98828）：新增 `PAGE_OPTIONS`(7个落地页) 常量，导航/轮播图(仅page类型)/推荐/系统设置横幅 共4处 `el-input`→`el-select`(filterable+allow-create)，存储值不变、老数据兼容
+    - 首页导航图标按数量自适应（提交 8a98828）：`index.js` 按 navItems.length 算 `navClass`，wxss 定义 1/2/3/4 档尺寸，≥5 个每行4个换行
+    - 操作日志（提交 8a98828 + 48765fb）：① 报错修复（客户已建 `admin_logs` 集合 + `queryAdminLogs` 加 try/catch 容错）；② 补**删除日志**——`adminApi.remove` 删除前存完整快照、写 admin_logs(`action='delete'`、`MODULE_NAMES` 英文集合名转中文、`oldValue` 存被删数据完整 JSON)，前端已支持展示无需改；③ 增/改不记（客户认可），金钱不镜像（已有 `balance_logs` 流水）
+    - 退款查证：用户申请(refundOrder)/系统自动(autoRefundTask)，无管理员手动环节→不进操作日志；后台已能在 订单管理(状态=已退款)/余额流水(类型=退款,仅余额退款)/数据统计(退款概览) 三处看到，无需新做
 - **2026-05-26 ~ 05-27 归档**：完成客户新需求迭代
   - 商品销售：projects/products 集合 + 3个新云函数 + 用户端购买/核销/退款全流程 + 员工端扫码核销
   - 订单导出：后台 Excel 导出（SheetJS）
