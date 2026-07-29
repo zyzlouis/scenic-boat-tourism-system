@@ -86,7 +86,15 @@
     <view class="cancel-link" bindtap="cancelOrder">
       <text>取消订单</text>
     </view>
-    <van-button type="primary" size="large" round block bind:click="doPay">
+    <van-button
+      type="primary"
+      size="large"
+      round
+      block
+      loading="{{paying}}"
+      disabled="{{paying}}"
+      bind:click="doPay"
+    >
       立即支付
     </van-button>
   </view>

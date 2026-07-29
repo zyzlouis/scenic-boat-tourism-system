@@ -8,7 +8,12 @@ Page({
     paymentMethod: 'wechat', // wechat 或 balance
     loading: false,
     rechargeEnabled: false,  // 储值功能开关
-    showPhoneAuth: false  // 是否显示手机号授权按钮
+    showPhoneAuth: false,  // 是否显示手机号授权按钮
+    // 支付流程进行中：既是按钮的重入锁，也驱动按钮的 loading 态。
+    // 2026-07-28 掉单事故的根因之一就是缺少这把锁——
+    // 手机号授权后的自动重入与用户手动点击并发，各自申请了一个商户单号，
+    // 后者覆盖前者，导致支付回调按单号查不到订单。
+    paying: false
   },
 
   onLoad(options) {
@@ -76,7 +81,27 @@ Page({
   },
 
   // 立即支付
+  // 支付入口（按钮点击）
+  //
+  // 唯一职责是加锁，真正的流程在 _runPayFlow。
+  // 手机号授权后的自动重入直接走 _runPayFlow（那条路径自己持锁），
+  // 避免"释放锁→重新获取锁"之间出现可被点击的空隙。
   async doPay() {
+    if (this.data.paying) {
+      console.log('⏳ 支付流程进行中，忽略重复触发')
+      return
+    }
+
+    this.setData({ paying: true })
+    try {
+      await this._runPayFlow()
+    } finally {
+      this.setData({ paying: false })
+    }
+  },
+
+  // 支付主流程（调用前必须已持有 paying 锁）
+  async _runPayFlow() {
     if (!this.data.order) {
       wx.showToast({
         title: '订单信息错误',
@@ -86,7 +111,17 @@ Page({
     }
 
     // 检查用户是否有手机号
-    const hasPhone = await this.checkUserPhone()
+    //
+    // checkUserPhone 是一次云函数往返，原实现全程无任何提示，
+    // 用户以为点击没反应会再点一次——这是事故的直接诱因，必须给反馈。
+    wx.showLoading({ title: '请稍候...', mask: true })
+    let hasPhone
+    try {
+      hasPhone = await this.checkUserPhone()
+    } finally {
+      wx.hideLoading()
+    }
+
     if (!hasPhone) {
       // 没有手机号，提示用户授权
       wx.showModal({
@@ -105,9 +140,9 @@ Page({
 
     // 有手机号，继续支付流程
     if (this.data.paymentMethod === 'balance') {
-      this.payWithBalance()
+      await this.payWithBalance()
     } else {
-      this.payWithWechat()
+      await this.payWithWechat()
     }
   },
 
@@ -148,12 +183,19 @@ Page({
             icon: 'success'
           })
 
-          // 隐藏授权按钮
-          this.setData({ showPhoneAuth: false })
+          // 隐藏授权按钮，并立刻上锁：
+          // 等待期间支付按钮转圈且不可点，用户不会以为"没反应"而重复点击。
+          this.setData({ showPhoneAuth: false, paying: true })
 
-          // 继续支付流程
-          setTimeout(() => {
-            this.doPay()
+          // 继续支付流程。
+          // 这里直接走 _runPayFlow 而不是 doPay——锁已经在上面拿到了，
+          // 走 doPay 需要先解锁再加锁，中间会出现可被点击的空隙。
+          setTimeout(async () => {
+            try {
+              await this._runPayFlow()
+            } finally {
+              this.setData({ paying: false })
+            }
           }, 1500)
         } else {
           wx.showToast({
@@ -279,6 +321,25 @@ Page({
 
       console.log('💳 微信支付统一下单结果:', res.result)
 
+      // 微信返回该单号已支付：说明钱已收到，只是回调没落到订单上。
+      // 不能让用户再付一次，直接引导去订单页，由对账补单在 10 分钟内修复状态。
+      if (res.result.code === 409) {
+        wx.showModal({
+          title: '该订单已支付',
+          content: '您已完成支付，核销码正在生成中，请稍后在订单详情中查看。',
+          showCancel: false,
+          success: () => {
+            const detailPage = this.data.order.orderType === 'product'
+              ? '/pages/product-order/product-order'
+              : '/pages/order-detail/order-detail'
+            wx.redirectTo({
+              url: `${detailPage}?orderId=${this.data.order._id}`
+            })
+          }
+        })
+        return
+      }
+
       if (res.result.code !== 200) {
         wx.showToast({
           title: res.result.message || '创建支付订单失败',
@@ -291,47 +352,53 @@ Page({
       const payment = res.result.data.payment
 
       // 3. 调起微信支付
-      wx.requestPayment({
-        ...payment,
-        success: (payRes) => {
-          console.log('✅ 支付成功:', payRes)
+      //    包成 Promise 并 await，让 doPay 的重入锁一直持有到支付面板关闭，
+      //    否则锁会在面板还开着时就释放。
+      await new Promise((resolve) => {
+        wx.requestPayment({
+          ...payment,
+          success: (payRes) => {
+            resolve()
+            console.log('✅ 支付成功:', payRes)
 
-          // 显示支付成功提示
-          wx.showModal({
-            title: '支付成功',
-            content: '订单支付成功！请稍等片刻，正在生成核销码...',
-            showCancel: false,
-            success: () => {
-              // 延迟跳转，等待支付回调处理完成
-              setTimeout(() => {
-                const detailPage = this.data.order.orderType === 'product'
-                  ? '/pages/product-order/product-order'
-                  : '/pages/order-detail/order-detail'
-                wx.redirectTo({
-                  url: `${detailPage}?orderId=${this.data.order._id}`
-                })
-              }, 1500)
-            }
-          })
-        },
-        fail: (payErr) => {
-          console.error('❌ 支付失败:', payErr)
-
-          if (payErr.errMsg.indexOf('cancel') !== -1) {
-            // 用户取消支付
-            wx.showToast({
-              title: '已取消支付',
-              icon: 'none'
-            })
-          } else {
-            // 支付失败
+            // 显示支付成功提示
             wx.showModal({
-              title: '支付失败',
-              content: payErr.errMsg || '支付过程中出现错误，请重试',
-              showCancel: false
+              title: '支付成功',
+              content: '订单支付成功！请稍等片刻，正在生成核销码...',
+              showCancel: false,
+              success: () => {
+                // 延迟跳转，等待支付回调处理完成
+                setTimeout(() => {
+                  const detailPage = this.data.order.orderType === 'product'
+                    ? '/pages/product-order/product-order'
+                    : '/pages/order-detail/order-detail'
+                  wx.redirectTo({
+                    url: `${detailPage}?orderId=${this.data.order._id}`
+                  })
+                }, 1500)
+              }
             })
+          },
+          fail: (payErr) => {
+            resolve()
+            console.error('❌ 支付失败:', payErr)
+
+            if (payErr.errMsg.indexOf('cancel') !== -1) {
+              // 用户取消支付
+              wx.showToast({
+                title: '已取消支付',
+                icon: 'none'
+              })
+            } else {
+              // 支付失败
+              wx.showModal({
+                title: '支付失败',
+                content: payErr.errMsg || '支付过程中出现错误，请重试',
+                showCancel: false
+              })
+            }
           }
-        }
+        })
       })
 
     } catch (error) {

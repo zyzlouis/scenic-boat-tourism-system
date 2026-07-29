@@ -59,11 +59,19 @@ exports.main = async (event, context) => {
       }
     }
 
-    // 3. 生成商户订单号（使用订单ID + 时间戳确保唯一性）
+    // 3. 商户订单号：优先复用该订单已有的，没有才新生成
+    //
+    // 原实现每次调起支付都生成新单号并覆盖旧值。若用户在旧的支付面板完成付款，
+    // 回调携带的是旧单号，而库里已被换成新的，回调按单号查不到订单 →
+    // 钱已收、订单永久卡在待支付。2026-07-28 事故即此。
+    //
+    // 微信侧对同一个未支付的 out_trade_no 重复下单是允许的，会返回新的 prepayId；
+    // 若该单号已支付，则会返回 ORDERPAID 错误（在下方单独处理）。
     const isProductOrder = order.orderType === 'product'
-    const outTradeNo = isProductOrder
+    const existingOutTradeNo = order.payment && order.payment.outTradeNo
+    const outTradeNo = existingOutTradeNo || (isProductOrder
       ? `PROD${Date.now()}${Math.floor(Math.random() * 1000)}`
-      : `BOAT${Date.now()}${Math.floor(Math.random() * 1000)}`
+      : `BOAT${Date.now()}${Math.floor(Math.random() * 1000)}`)
 
     // 4. 构建商品描述
     const body = isProductOrder
@@ -86,18 +94,21 @@ exports.main = async (event, context) => {
     // 6. 检查统一下单结果
     if (paymentResult.returnCode === 'SUCCESS' && paymentResult.resultCode === 'SUCCESS') {
       // 更新订单，记录商户订单号和预支付交易会话标识
-      await db.collection('orders').doc(orderId).update({
-        data: {
-          'payment.outTradeNo': outTradeNo,
-          // 追加而非覆盖：同一订单多次调起支付会生成多个商户单号，
-          // 若用户在旧的支付面板完成付款，回调携带的是旧单号，
-          // 只留最新值会导致回调和对账都查不到订单。
-          'payment.outTradeNoHistory': _.push([outTradeNo]),
-          'payment.prepayId': paymentResult.prepayId,
-          'payment.method': 'wechat',
-          updatedAt: new Date()
-        }
-      })
+      const updateData = {
+        'payment.outTradeNo': outTradeNo,
+        'payment.prepayId': paymentResult.prepayId,
+        'payment.method': 'wechat',
+        updatedAt: new Date()
+      }
+
+      // 只有新生成的单号才入历史（复用时无需重复追加）。
+      // 历史数组是回调和对账按旧单号反查订单的依据，
+      // 用于兜住"用户在旧支付面板付款"这类场景。
+      if (!existingOutTradeNo) {
+        updateData['payment.outTradeNoHistory'] = _.push([outTradeNo])
+      }
+
+      await db.collection('orders').doc(orderId).update({ data: updateData })
 
       return {
         code: 200,
@@ -111,6 +122,17 @@ exports.main = async (event, context) => {
     } else {
       // 统一下单失败
       console.error('❌ 统一下单失败:', paymentResult)
+
+      // 复用单号时，若微信返回 ORDERPAID，说明这笔其实已经付过了，
+      // 只是回调没落到订单上。这不是错误，而是需要走对账补单。
+      if (paymentResult.errCode === 'ORDERPAID' || paymentResult.resultCode === 'ORDERPAID') {
+        console.warn('⚠️ 微信返回订单已支付，交由对账补单处理:', outTradeNo)
+        return {
+          code: 409,
+          message: '该订单已支付成功，请稍候刷新查看',
+          data: { orderId, outTradeNo, alreadyPaid: true }
+        }
+      }
 
       return {
         code: 500,
