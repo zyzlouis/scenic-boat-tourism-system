@@ -324,9 +324,24 @@ Page({
       // 微信返回该单号已支付：说明钱已收到，只是回调没落到订单上。
       // 不能让用户再付一次，直接引导去订单页，由对账补单在 10 分钟内修复状态。
       if (res.result.code === 409) {
+        // 主动触发一次对账补单，把状态修复从「等定时任务最多 10 分钟」压到秒级。
+        // 放在前端而非 wechatPay 云函数里，是因为后者默认超时仅 3 秒，
+        // 对账要跑多次查单会把它拖超时。失败也不要紧，定时对账仍会兜住。
+        wx.showLoading({ title: '正在确认支付结果...', mask: true })
+        try {
+          await wx.cloud.callFunction({
+            name: 'reconcilePayment',
+            data: { orderId: this.data.order._id }
+          })
+        } catch (e) {
+          console.error('触发对账补单失败，将由定时任务处理:', e)
+        } finally {
+          wx.hideLoading()
+        }
+
         wx.showModal({
           title: '该订单已支付',
-          content: '您已完成支付，核销码正在生成中，请稍后在订单详情中查看。',
+          content: '您已完成支付，正在为您生成核销码。',
           showCancel: false,
           success: () => {
             const detailPage = this.data.order.orderType === 'product'
@@ -397,7 +412,11 @@ Page({
                 showCancel: false
               })
             }
-          }
+          },
+          // 防御性兜底：success/fail 必有其一，但万一都没触发，
+          // Promise 永不 resolve 会导致 paying 锁永久卡死、用户再也付不了款。
+          // resolve 是幂等的，重复调用无副作用。
+          complete: () => resolve()
         })
       })
 
