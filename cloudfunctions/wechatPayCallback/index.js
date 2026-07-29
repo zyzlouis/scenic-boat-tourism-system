@@ -102,8 +102,14 @@ exports.main = async (event, context) => {
     const order = orderRes.data[0]
 
     // 3. 检查订单状态，避免重复处理
-    if (order.status === 'paid') {
-      console.log('✅ 订单已处理过，无需重复处理')
+    //
+    // 只处理 pending 的订单。原实现只在 status==='paid' 时跳过，
+    // 但微信回调重试可能延迟数小时到达，此时订单可能已流转到
+    // completed（已核销）/ timing（计时中）/ verified 等状态，
+    // 继续往下走会把状态打回 paid 并重新生成核销码——
+    // 已核销的票会复活，计时中的订单会被破坏。
+    if (order.status !== 'pending') {
+      console.log(`✅ 订单当前状态为 ${order.status}，非待支付，跳过处理`)
       return { errcode: 0, errmsg: 'ok' }
     }
 
@@ -150,9 +156,18 @@ exports.main = async (event, context) => {
     }
 
     // 6. 更新订单状态
-    await db.collection('orders').doc(order._id).update({
-      data: updateData
-    })
+    //
+    // 用带 status 条件的 where().update() 而非 doc().update()：
+    // 与补单任务(reconcilePayment)并发时，状态已被改动则更新 0 条，
+    // 不会重复处理、不会重复发核销码。
+    const updateRes = await db.collection('orders')
+      .where({ _id: order._id, status: 'pending' })
+      .update({ data: updateData })
+
+    if (!updateRes.stats || updateRes.stats.updated === 0) {
+      console.log('⚠️ 订单状态已被其他流程改变，本次回调不重复处理')
+      return { errcode: 0, errmsg: 'ok' }
+    }
 
     console.log('✅ 支付回调处理完成')
     console.log('📦 订单ID:', order._id)

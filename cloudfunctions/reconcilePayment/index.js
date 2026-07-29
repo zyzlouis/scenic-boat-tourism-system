@@ -25,7 +25,14 @@ const SUB_MCH_ID = '1106454761'
 // 3 分钟是为了避开用户正在支付中的订单
 const DEFAULT_MIN_AGE_MS = 3 * 60 * 1000
 const DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
-const DEFAULT_LIMIT = 100
+
+// ⚠️ 云函数默认超时仅 3 秒，且 config.json 不支持配置 timeout，
+//    必须在云开发控制台把本函数超时手工改为 60 秒。
+//    单笔可能要查多个商户单号，每次 queryOrder 约 0.2~0.5 秒，
+//    因此单批上限压到 20 笔，并在循环里留时间护栏，
+//    没跑完的留给下一个 10 分钟周期，不会漏。
+const DEFAULT_LIMIT = 20
+const TIME_BUDGET_MS = 45 * 1000
 
 /**
  * 生成核销码（与 wechatPayCallback 保持一致）
@@ -273,8 +280,18 @@ exports.main = async (event, context) => {
 
     console.log(`🔍 待对账订单 ${orders.length} 笔`)
 
+    const startedAt = Date.now()
     const results = []
+    let skippedByBudget = 0
+
     for (const order of orders) {
+      // 时间护栏：超预算就停，剩下的交给下一个周期，避免函数被强制中断
+      if (Date.now() - startedAt > TIME_BUDGET_MS) {
+        skippedByBudget = orders.length - results.length
+        console.warn(`⏱ 超出时间预算，本轮剩余 ${skippedByBudget} 笔顺延至下一周期`)
+        break
+      }
+
       try {
         results.push(await reconcileOne(order))
       } catch (error) {
@@ -292,6 +309,8 @@ exports.main = async (event, context) => {
       message: '对账完成',
       data: {
         scanned: orders.length,
+        processed: results.length,
+        skippedByBudget,
         repaired: repaired.length,
         repairedOrders: repaired.map(r => ({ orderNo: r.orderNo, outTradeNo: r.outTradeNo })),
         results
