@@ -6,6 +6,7 @@ cloud.init({
 })
 
 const db = cloud.database()
+const _ = db.command
 
 /**
  * 生成核销码（6位大写字母+数字）
@@ -78,10 +79,15 @@ exports.main = async (event, context) => {
     }
 
     // 2. 查询订单（通过商户订单号）
+    //
+    // 同时匹配 outTradeNoHistory：同一订单多次调起支付会生成多个商户单号，
+    // 用户可能在旧的支付面板完成付款，此时回调携带的是已被覆盖的旧单号。
+    // 2026-07-28 的掉单事故正是如此（库里存 B，微信按 A 扣款）。
     const orderRes = await db.collection('orders')
-      .where({
-        'payment.outTradeNo': outTradeNo
-      })
+      .where(_.or([
+        { 'payment.outTradeNo': outTradeNo },
+        { 'payment.outTradeNoHistory': outTradeNo }
+      ]))
       .get()
 
     if (orderRes.data.length === 0) {
@@ -109,7 +115,31 @@ exports.main = async (event, context) => {
     // 继续往下走会把状态打回 paid 并重新生成核销码——
     // 已核销的票会复活，计时中的订单会被破坏。
     if (order.status !== 'pending') {
-      console.log(`✅ 订单当前状态为 ${order.status}，非待支付，跳过处理`)
+      // 跳过必须留痕：本函数恒返回 errcode:0（微信不再重试），
+      // 且 reconcilePayment 只扫 pending，一旦静默返回就再无人知晓。
+      //
+      // 尤其是 cancelled/refunded —— cancelOrder 允许用户取消 pending 订单，
+      // 因此「已付款 → 回调延迟 → 用户以为没付点了取消 → 回调到达」真实存在，
+      // 属于钱已收但订单已作废的资金异常，必须人工介入。
+      const HANDLED = ['paid', 'timing', 'completed', 'verified', 'ended']
+      const isAbnormal = !HANDLED.includes(order.status)
+
+      console.log(`订单当前状态为 ${order.status}，非待支付，跳过处理`)
+
+      await logException({
+        type: isAbnormal ? 'callback_on_abnormal_status' : 'callback_duplicate',
+        orderId: order._id,
+        orderNo: order.orderNo,
+        orderStatus: order.status,
+        outTradeNo,
+        transactionId,
+        totalFee,
+        needsManualReview: isAbnormal,
+        detail: isAbnormal
+          ? `收到支付回调但订单状态为 ${order.status}，钱已收但订单已作废，需人工核实退款或补发`
+          : `订单已由其他流程处理为 ${order.status}，本次回调不重复处理`
+      })
+
       return { errcode: 0, errmsg: 'ok' }
     }
 

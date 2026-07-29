@@ -32,7 +32,11 @@ const DEFAULT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
 //    因此单批上限压到 20 笔，并在循环里留时间护栏，
 //    没跑完的留给下一个 10 分钟周期，不会漏。
 const DEFAULT_LIMIT = 20
-const TIME_BUDGET_MS = 45 * 1000
+// 30 秒而非 45：护栏在循环开头检查，最坏情况还要再跑完一整笔；
+// 且计时起点在扫描查询之后，未覆盖冷启动和 DB 查询耗时。
+const TIME_BUDGET_MS = 30 * 1000
+// 单笔最多回查几个历史单号（用户连点 N 次就会有 N 个，防止单笔拖垮整批）
+const MAX_HISTORY_PER_ORDER = 5
 
 /**
  * 生成核销码（与 wechatPayCallback 保持一致）
@@ -91,7 +95,10 @@ function collectOutTradeNos(order) {
     list.push(payment.outTradeNo)
   }
 
-  return list.filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i)
+  const uniq = list.filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i)
+
+  // 只回查最近的若干个，越新的越可能是被支付的那个
+  return uniq.slice(-MAX_HISTORY_PER_ORDER)
 }
 
 /**
@@ -269,7 +276,11 @@ exports.main = async (event, context) => {
       const res = await db.collection('orders')
         .where({
           status: 'pending',
-          createdAt: _.gte(new Date(now - maxAge)).and(_.lte(new Date(now - minAge)))
+          createdAt: _.gte(new Date(now - maxAge)).and(_.lte(new Date(now - minAge))),
+          // 排除从未调起过支付的废单（用户下单即放弃）。
+          // 它们不可能已支付，却会白白占满每批 20 个名额，
+          // 高峰期会把真正卡住的订单挤出扫描窗口。
+          'payment.outTradeNo': _.neq(null)
         })
         .orderBy('createdAt', 'desc')
         .limit(limit || DEFAULT_LIMIT)
