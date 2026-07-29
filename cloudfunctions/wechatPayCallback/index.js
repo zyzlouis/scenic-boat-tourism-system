@@ -20,6 +20,27 @@ function generateVerificationCode() {
 }
 
 /**
+ * 记录回调异常，供人工排查和对账任务参考
+ *
+ * 云函数日志最长只存 30 天且可能被关闭，一旦关闭历史数据不可恢复，
+ * 因此支付这类资金链路的失败必须落库留痕，不能只依赖日志。
+ * 本函数自身的失败被吞掉，绝不能影响回调主流程。
+ */
+async function logException(payload) {
+  try {
+    await db.collection('pay_exceptions').add({
+      data: {
+        source: 'wechatPayCallback',
+        ...payload,
+        createdAt: new Date()
+      }
+    })
+  } catch (e) {
+    console.error('写入 pay_exceptions 失败:', e)
+  }
+}
+
+/**
  * 微信支付结果回调
  *
  * 功能：
@@ -44,6 +65,15 @@ exports.main = async (event, context) => {
     // 1. 验证回调结果
     if (returnCode !== 'SUCCESS' || resultCode !== 'SUCCESS') {
       console.warn('⚠️ 支付未成功，returnCode:', returnCode, 'resultCode:', resultCode)
+      await logException({
+        type: 'callback_not_success',
+        outTradeNo,
+        transactionId,
+        returnCode,
+        resultCode,
+        rawEvent: event,
+        detail: '回调返回非成功状态，未更新订单'
+      })
       return { errcode: 0, errmsg: 'ok' }
     }
 
@@ -56,6 +86,16 @@ exports.main = async (event, context) => {
 
     if (orderRes.data.length === 0) {
       console.error('❌ 订单不存在，outTradeNo:', outTradeNo)
+      // 这是「已扣款但订单卡在 pending」最可能的失败点：
+      // 商户单号对不上（例如被后续调起支付时覆盖），务必留痕。
+      await logException({
+        type: 'order_not_found',
+        outTradeNo,
+        transactionId,
+        totalFee,
+        rawEvent: event,
+        detail: '按 payment.outTradeNo 未查到订单，用户可能已扣款但订单未更新'
+      })
       return { errcode: 0, errmsg: 'ok' }
     }
 
@@ -126,6 +166,16 @@ exports.main = async (event, context) => {
 
   } catch (error) {
     console.error('❌ 支付回调处理失败:', error)
+
+    await logException({
+      type: 'callback_exception',
+      outTradeNo,
+      transactionId,
+      errorMessage: error.message,
+      errorStack: error.stack,
+      rawEvent: event,
+      detail: '回调处理抛异常，订单可能未更新'
+    })
 
     // 即使出错也要返回成功，避免微信重复回调
     return {

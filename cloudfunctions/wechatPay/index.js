@@ -6,6 +6,7 @@ cloud.init({
 })
 
 const db = cloud.database()
+const _ = db.command
 
 /**
  * 微信支付统一下单
@@ -88,6 +89,10 @@ exports.main = async (event, context) => {
       await db.collection('orders').doc(orderId).update({
         data: {
           'payment.outTradeNo': outTradeNo,
+          // 追加而非覆盖：同一订单多次调起支付会生成多个商户单号，
+          // 若用户在旧的支付面板完成付款，回调携带的是旧单号，
+          // 只留最新值会导致回调和对账都查不到订单。
+          'payment.outTradeNoHistory': _.push([outTradeNo]),
           'payment.prepayId': paymentResult.prepayId,
           'payment.method': 'wechat',
           updatedAt: new Date()
