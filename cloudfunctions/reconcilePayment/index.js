@@ -3,9 +3,10 @@
 // 用途：兜住"用户已付款但回调没成功"导致订单卡在 pending 的情况。
 // 微信官方对 queryOrder 的适用场景描述即为「商户系统最终未接收到支付通知」。
 //
-// 两种调用方式：
+// 三种调用方式：
 //   1. 定时触发（config.json 已配 10 分钟一次）—— 无参，扫描窗口内所有 pending 订单
-//   2. 手动/前端触发 —— 传 { orderId } 只处理指定订单
+//   2. 手动排查 —— 传 { orderNo } 按订单号处理单笔（不用先去数据库翻 _id）
+//   3. 前端/程序调用 —— 传 { orderId } 按文档 ID 处理单笔
 //
 // 本函数只做「补」不做「改坏」：仅当微信明确返回 trade_state=SUCCESS 时才把订单置为已支付。
 const cloud = require('wx-server-sdk')
@@ -224,25 +225,34 @@ async function reconcileOne(order) {
 }
 
 exports.main = async (event, context) => {
-  const { orderId, minAgeMs, maxAgeMs, limit } = event || {}
+  const { orderId, orderNo, minAgeMs, maxAgeMs, limit } = event || {}
 
   try {
     let orders = []
 
-    if (orderId) {
+    if (orderId || orderNo) {
       // 手动模式：只处理指定订单
-      const res = await db.collection('orders').doc(orderId).get()
-      if (!res.data) {
-        return { code: 404, message: '订单不存在' }
+      let target = null
+
+      if (orderNo) {
+        const res = await db.collection('orders').where({ orderNo }).limit(1).get()
+        target = (res.data || [])[0] || null
+      } else {
+        const res = await db.collection('orders').doc(orderId).get()
+        target = res.data || null
       }
-      if (res.data.status !== 'pending') {
+
+      if (!target) {
+        return { code: 404, message: '订单不存在', data: { orderId, orderNo } }
+      }
+      if (target.status !== 'pending') {
         return {
           code: 200,
-          message: `订单当前状态为 ${res.data.status}，无需补单`,
-          data: { orderId, status: res.data.status }
+          message: `订单当前状态为 ${target.status}，无需补单`,
+          data: { orderId: target._id, orderNo: target.orderNo, status: target.status }
         }
       }
-      orders = [res.data]
+      orders = [target]
     } else {
       // 定时模式：扫描窗口内的 pending 订单
       const now = Date.now()
