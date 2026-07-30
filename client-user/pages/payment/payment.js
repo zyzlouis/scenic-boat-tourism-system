@@ -83,24 +83,34 @@ Page({
   // 立即支付
   // 支付入口（按钮点击）
   //
-  // 唯一职责是加锁，真正的流程在 _runPayFlow。
-  // 手机号授权后的自动重入直接走 _runPayFlow（那条路径自己持锁），
-  // 避免"释放锁→重新获取锁"之间出现可被点击的空隙。
+  // 只是转发到统一入口，所有触发路径（按钮、授权后自动重入）都走 _enterPayFlow。
   async doPay() {
-    if (this.data.paying) {
+    await this._enterPayFlow()
+  },
+
+  // 支付流程的唯一入口，所有触发路径都必须走这里
+  //
+  // 锁用实例属性 _payFlowRunning 而非 data.paying：
+  // setData 是异步的，两次触发若挨得很近，第二次读到的 data.paying 可能还是旧值，
+  // 锁会失效。实例属性赋值是同步的，JS 单线程下 check-and-set 之间不会被打断。
+  // data.paying 只负责驱动按钮的 loading 态，不承担互斥职责。
+  async _enterPayFlow() {
+    if (this._payFlowRunning) {
       console.log('⏳ 支付流程进行中，忽略重复触发')
       return
     }
-
+    this._payFlowRunning = true
     this.setData({ paying: true })
+
     try {
       await this._runPayFlow()
     } finally {
+      this._payFlowRunning = false
       this.setData({ paying: false })
     }
   },
 
-  // 支付主流程（调用前必须已持有 paying 锁）
+  // 支付主流程（不要直接调用，一律经 _enterPayFlow 进入以确保持锁）
   async _runPayFlow() {
     if (!this.data.order) {
       wx.showToast({
@@ -187,15 +197,15 @@ Page({
           // 等待期间支付按钮转圈且不可点，用户不会以为"没反应"而重复点击。
           this.setData({ showPhoneAuth: false, paying: true })
 
-          // 继续支付流程。
-          // 这里直接走 _runPayFlow 而不是 doPay——锁已经在上面拿到了，
-          // 走 doPay 需要先解锁再加锁，中间会出现可被点击的空隙。
-          setTimeout(async () => {
-            try {
-              await this._runPayFlow()
-            } finally {
-              this.setData({ paying: false })
-            }
+          // 继续支付流程，走统一入口。
+          //
+          // ⚠️ 这里必须走 _enterPayFlow 而不是直接调 _runPayFlow：
+          // 若本函数被触发两次且都成功（用户连点授权按钮，两个 code 都有效），
+          // 就会排出两个 setTimeout。直接调 _runPayFlow 会绕过锁，
+          // 导致两次支付流程并发、各自向微信申请一个商户单号——
+          // 这正是 2026-07-28 事故的形态。
+          setTimeout(() => {
+            this._enterPayFlow()
           }, 1500)
         } else {
           wx.showToast({
