@@ -70,6 +70,30 @@ function inspectCloudCallContext() {
 }
 
 /**
+ * 定时模式心跳：每次自动运行后覆盖写同一条记录
+ *
+ * 解决一个观测盲区：若扫描窗口内没有待支付订单，函数根本不会调用微信查单，
+ * 也就不会产生任何异常留痕。此时 pay_exceptions 为空既可能是"一切正常"，
+ * 也可能是"定时器压根没跑"或"跑了但没验证到令牌"，无法区分。
+ *
+ * 用固定 _id 覆盖写，集合里永远只有这一条，不会堆积。
+ */
+async function writeHeartbeat(payload) {
+  try {
+    await db.collection('pay_exceptions').doc('_heartbeat_reconcile').set({
+      data: {
+        type: 'heartbeat',
+        note: '定时对账心跳，固定一条覆盖写，非异常记录',
+        ...payload,
+        updatedAt: new Date()
+      }
+    })
+  } catch (e) {
+    console.error('写入心跳失败:', e)
+  }
+}
+
+/**
  * 生成核销码（与 wechatPayCallback 保持一致）
  */
 function generateVerificationCode() {
@@ -464,6 +488,20 @@ exports.main = async (event, context) => {
     const repaired = results.filter(r => r.result === 'repaired')
 
     console.log(`📊 对账完成：扫描 ${orders.length} 笔，补单 ${repaired.length} 笔`)
+
+    // 仅定时模式写心跳（手动调用不写，避免混淆判断）
+    if (!orderId && !orderNo) {
+      const ctx = inspectCloudCallContext()
+      await writeHeartbeat({
+        ...ctx,
+        scanned: orders.length,
+        processed: results.length,
+        repaired: repaired.length,
+        // 本轮是否真的向微信发起过查单——只有发起过，令牌才算被实际验证
+        queriedWechat: results.some(r => Array.isArray(r.states) && r.states.length > 0),
+        lastRunAt: new Date()
+      })
+    }
 
     return {
       code: 200,
