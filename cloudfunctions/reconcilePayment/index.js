@@ -39,6 +39,37 @@ const TIME_BUDGET_MS = 30 * 1000
 const MAX_HISTORY_PER_ORDER = 5
 
 /**
+ * 自检：报告当前调用来源能否拿到微信云调用所需的身份令牌
+ *
+ * 依据 @cloudbase/node-sdk/lib/utils/wxCloudToken.js 的实现：
+ *   TRIGGER_SRC === 'timer' → 用 WX_TRIGGER_API_TOKEN_V0，回退 WX_API_TOKEN
+ *   其他来源              → 用 WX_API_TOKEN
+ * 两者都为空时 cloudPay.* 会报 -501001 invalid wx openapi access_token。
+ *
+ * 云开发控制台「云端测试」和 CLI 都不注入这两个变量，因此无法用它们验证对账功能，
+ * 必须由小程序端调用或微信定时触发器发起。
+ *
+ * 只报告"有没有"，绝不输出令牌内容。
+ */
+function inspectCloudCallContext() {
+  const triggerSrc = process.env.TRIGGER_SRC || null
+  const hasApiToken = !!process.env.WX_API_TOKEN
+  const hasTimerToken = !!process.env.WX_TRIGGER_API_TOKEN_V0
+
+  const usable = triggerSrc === 'timer'
+    ? (hasTimerToken || hasApiToken)
+    : hasApiToken
+
+  return {
+    triggerSrc,
+    hasApiToken,
+    hasTimerToken,
+    tcbSource: process.env.TCB_SOURCE || null,
+    cloudCallUsable: usable
+  }
+}
+
+/**
  * 生成核销码（与 wechatPayCallback 保持一致）
  */
 function generateVerificationCode() {
@@ -229,6 +260,8 @@ async function reconcileOne(order, extraOutTradeNos) {
         orderNo: order.orderNo,
         outTradeNo,
         errorMessage: msg,
+        // 附上调用来源自检，用于判断是"这个来源本来就没令牌"还是"平台没注入"
+        context: inspectCloudCallContext(),
         needsManualReview: isTokenError,
         detail: isTokenError
           ? '云调用拿不到微信身份令牌，对账功能在当前调用来源下不可用（控制台测试/CLI 均无令牌，需由小程序或微信定时触发器发起）'
@@ -321,6 +354,20 @@ async function reconcileOne(order, extraOutTradeNos) {
 
 exports.main = async (event, context) => {
   const { orderId, orderNo, extraOutTradeNos, operatorId, minAgeMs, maxAgeMs, limit } = event || {}
+
+  // 自检模式：只报告当前来源能否拿到云调用令牌，不碰任何订单。
+  // 用途：确认微信定时触发器是否真的注入了 WX_TRIGGER_API_TOKEN_V0。
+  if (event && event.diagnose) {
+    const ctx = inspectCloudCallContext()
+    console.log('🔍 云调用上下文自检:', JSON.stringify(ctx))
+    return {
+      code: 200,
+      message: ctx.cloudCallUsable
+        ? '当前调用来源可以使用云调用，对账功能可用'
+        : '当前调用来源拿不到微信身份令牌，cloudPay 必然失败（控制台测试/CLI 均如此，属预期）',
+      data: ctx
+    }
+  }
 
   try {
     // extraOutTradeNos 是资金敏感入参：它让调用方指定"拿哪个商户单号去问微信"。
