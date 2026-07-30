@@ -216,6 +216,24 @@ async function reconcileOne(order, extraOutTradeNos) {
     } catch (error) {
       console.error(`查单失败 outTradeNo=${outTradeNo}:`, error)
       states.push({ outTradeNo, tradeState: 'QUERY_ERROR', message: error.message })
+
+      // 必须落库：定时触发器是无人值守的，没人会去看返回值。
+      // 尤其要盯住 access_token 类错误——云调用需要微信侧传来的身份令牌，
+      // 若定时触发器场景下拿不到令牌，整个补单会静默失效而无人知晓。
+      const msg = String(error.message || '')
+      const isTokenError = msg.indexOf('access_token') >= 0 ||
+                           msg.indexOf('wxCloudApiToken') >= 0
+      await logException({
+        type: isTokenError ? 'cloudpay_token_unavailable' : 'query_order_error',
+        orderId: order._id,
+        orderNo: order.orderNo,
+        outTradeNo,
+        errorMessage: msg,
+        needsManualReview: isTokenError,
+        detail: isTokenError
+          ? '云调用拿不到微信身份令牌，对账功能在当前调用来源下不可用（控制台测试/CLI 均无令牌，需由小程序或微信定时触发器发起）'
+          : '向微信查单时报错，本轮未能确认支付状态'
+      })
       continue
     }
 
