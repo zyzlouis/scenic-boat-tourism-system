@@ -84,7 +84,7 @@ function parseTimeEnd(timeEnd) {
  * 之所以要查历史：wechatPay 每次调用都会生成新的 outTradeNo 并覆盖旧值，
  * 若用户在旧的支付面板上完成付款，库里存的就已经不是被扣款的那个单号了。
  */
-function collectOutTradeNos(order) {
+function collectOutTradeNos(order, extraOutTradeNos) {
   const payment = order.payment || {}
   const list = []
 
@@ -98,7 +98,35 @@ function collectOutTradeNos(order) {
   const uniq = list.filter(Boolean).filter((v, i, arr) => arr.indexOf(v) === i)
 
   // 只回查最近的若干个，越新的越可能是被支付的那个
-  return uniq.slice(-MAX_HISTORY_PER_ORDER)
+  const recent = uniq.slice(-MAX_HISTORY_PER_ORDER)
+
+  // 人工显式指定的单号排在最前，且不受上面的截断影响。
+  // 场景：历史事故订单的真实单号只存在于微信账单上，库里已被覆盖。
+  const extras = (Array.isArray(extraOutTradeNos) ? extraOutTradeNos : [])
+    .filter(v => typeof v === 'string' && v)
+
+  return [...extras, ...recent].filter((v, i, arr) => arr.indexOf(v) === i)
+}
+
+/**
+ * 校验这个商户单号是否已经归属于另一笔订单
+ *
+ * 防止用已支付过的单号给另一笔订单"顶账"——
+ * 例如拿自己上一单的单号来给新订单免费开票。
+ */
+async function isClaimedByAnotherOrder(outTradeNo, selfId) {
+  const res = await db.collection('orders')
+    .where(_.and([
+      _.or([
+        { 'payment.outTradeNo': outTradeNo },
+        { 'payment.outTradeNoHistory': outTradeNo }
+      ]),
+      { _id: _.neq(selfId) }
+    ]))
+    .limit(1)
+    .get()
+
+  return (res.data || []).length > 0
 }
 
 /**
@@ -167,8 +195,8 @@ async function markPaid(order, queryResult, outTradeNo) {
 /**
  * 处理单个订单
  */
-async function reconcileOne(order) {
-  const outTradeNos = collectOutTradeNos(order)
+async function reconcileOne(order, extraOutTradeNos) {
+  const outTradeNos = collectOutTradeNos(order, extraOutTradeNos)
 
   if (outTradeNos.length === 0) {
     // 从未调起过支付，属于用户下单后直接放弃，正常情况
@@ -195,6 +223,41 @@ async function reconcileOne(order) {
     states.push({ outTradeNo, tradeState })
 
     if (tradeState === 'SUCCESS') {
+      // 补单前的两道资金校验，任一不通过都只留痕、不动订单。
+      //
+      // ① 金额必须与订单一致 —— 防止把别的订单的支付记在这一笔上
+      const paidFen = Number(pick(queryResult, 'cash_fee', 'cashFee') ||
+                             pick(queryResult, 'total_fee', 'totalFee') || 0)
+      const expectFen = Math.round(Number(order.totalAmount || 0) * 100)
+      if (paidFen !== expectFen) {
+        await logException({
+          type: 'amount_mismatch',
+          orderId: order._id,
+          orderNo: order.orderNo,
+          outTradeNo,
+          paidFen,
+          expectFen,
+          needsManualReview: true,
+          detail: `查到已支付但金额不符（微信 ${paidFen} 分 / 订单 ${expectFen} 分），未补单`
+        })
+        states.push({ outTradeNo, tradeState: 'AMOUNT_MISMATCH' })
+        continue
+      }
+
+      // ② 该单号不能已归属于另一笔订单 —— 防止用旧的已支付单号给新订单顶账
+      if (await isClaimedByAnotherOrder(outTradeNo, order._id)) {
+        await logException({
+          type: 'trade_no_claimed',
+          orderId: order._id,
+          orderNo: order.orderNo,
+          outTradeNo,
+          needsManualReview: true,
+          detail: '该商户单号已归属于另一笔订单，拒绝补单'
+        })
+        states.push({ outTradeNo, tradeState: 'CLAIMED_BY_OTHER' })
+        continue
+      }
+
       const updated = await markPaid(order, queryResult, outTradeNo)
 
       await logException({
@@ -239,9 +302,30 @@ async function reconcileOne(order) {
 }
 
 exports.main = async (event, context) => {
-  const { orderId, orderNo, minAgeMs, maxAgeMs, limit } = event || {}
+  const { orderId, orderNo, extraOutTradeNos, operatorId, minAgeMs, maxAgeMs, limit } = event || {}
 
   try {
+    // extraOutTradeNos 是资金敏感入参：它让调用方指定"拿哪个商户单号去问微信"。
+    // 云函数默认任何人可调，若不设门槛，攻击者可拿一个已支付的单号给自己的订单顶账。
+    // 因此必须管理员身份，另有金额一致 + 单号未被他单占用两道校验兜在后面。
+    const hasExtras = Array.isArray(extraOutTradeNos) && extraOutTradeNos.length > 0
+    if (hasExtras) {
+      if (!operatorId) {
+        return { code: 403, message: '指定商户单号需要管理员身份（缺少 operatorId）' }
+      }
+      try {
+        const staffRes = await db.collection('staff').doc(operatorId).get()
+        if (!staffRes.data || staffRes.data.role !== 'admin') {
+          return { code: 403, message: '无管理员权限' }
+        }
+      } catch (e) {
+        return { code: 403, message: '身份验证失败' }
+      }
+      if (!orderId && !orderNo) {
+        return { code: 400, message: '指定商户单号时必须同时指定 orderNo 或 orderId' }
+      }
+    }
+
     let orders = []
 
     if (orderId || orderNo) {
@@ -304,7 +388,8 @@ exports.main = async (event, context) => {
       }
 
       try {
-        results.push(await reconcileOne(order))
+        // 人工指定的单号只在单笔模式下生效，批量扫描不接受
+        results.push(await reconcileOne(order, orders.length === 1 ? extraOutTradeNos : null))
       } catch (error) {
         console.error(`对账失败 orderId=${order._id}:`, error)
         results.push({ orderId: order._id, result: 'error', message: error.message })
