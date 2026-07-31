@@ -234,6 +234,40 @@ Page({
     this.setData({ showPhoneAuth: false })
   },
 
+  // 支付成功后：主动确认一次，再跳转
+  //
+  // 原实现是盲等 1500 毫秒就跳转，赌支付回调已经处理完。
+  // 但回调可能延迟、甚至失败——2026-07-28 事故里回调就因单号对不上永久没落地，
+  // 用户跳过去看到的是"待支付"，然后就去投诉了。
+  //
+  // 改为主动调对账：此刻用户还在页面上，小程序端调用天然带云调用令牌，
+  // 直接向微信核实真实支付状态并补单，秒级完成。
+  // 失败也不要紧，定时对账仍会在 13 分钟内兜住。
+  async _afterPaySuccess() {
+    const orderId = this.data.order._id
+    const detailPage = this.data.order.orderType === 'product'
+      ? '/pages/product-order/product-order'
+      : '/pages/order-detail/order-detail'
+
+    wx.showLoading({ title: '正在生成核销码...', mask: true })
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'reconcilePayment',
+        data: { orderId }
+      })
+      console.log('🔄 支付后主动对账结果:', res.result)
+    } catch (error) {
+      // 静默降级：定时对账会兜底，不打扰用户
+      console.error('支付后主动对账失败，将由定时任务处理:', error)
+    } finally {
+      wx.hideLoading()
+    }
+
+    wx.redirectTo({
+      url: `${detailPage}?orderId=${orderId}`
+    })
+  },
+
   // 余额支付
   async payWithBalance() {
     // 检查余额是否充足
@@ -385,24 +419,7 @@ Page({
           success: (payRes) => {
             resolve()
             console.log('✅ 支付成功:', payRes)
-
-            // 显示支付成功提示
-            wx.showModal({
-              title: '支付成功',
-              content: '订单支付成功！请稍等片刻，正在生成核销码...',
-              showCancel: false,
-              success: () => {
-                // 延迟跳转，等待支付回调处理完成
-                setTimeout(() => {
-                  const detailPage = this.data.order.orderType === 'product'
-                    ? '/pages/product-order/product-order'
-                    : '/pages/order-detail/order-detail'
-                  wx.redirectTo({
-                    url: `${detailPage}?orderId=${this.data.order._id}`
-                  })
-                }, 1500)
-              }
-            })
+            this._afterPaySuccess()
           },
           fail: (payErr) => {
             resolve()
