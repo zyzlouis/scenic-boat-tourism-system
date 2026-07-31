@@ -6,12 +6,29 @@ cloud.init({
 
 const db = cloud.database()
 
-exports.main = async (event, context) => {
-  const { action, staffData, staffId } = event
+// 校验调用者是否为管理员（与 adminApi 一致）
+// 注意：operatorId = 调用者自己的员工ID；staffId 是被操作的目标员工，二者不可混用
+async function requireAdmin(operatorId) {
+  if (!operatorId) {
+    return { code: 403, message: '无管理员权限', data: null }
+  }
+  try {
+    const res = await db.collection('staff').doc(operatorId).get()
+    if (!res.data || res.data.role !== 'admin') {
+      return { code: 403, message: '无管理员权限', data: null }
+    }
+  } catch (e) {
+    return { code: 403, message: '身份验证失败', data: null }
+  }
+  return null
+}
 
-  // 权限验证：仅管理员可操作（可选，根据需求添加）
-  // const wxContext = cloud.getWXContext()
-  // TODO: 验证调用者是否为管理员
+exports.main = async (event, context) => {
+  const { action, staffData, staffId, operatorId } = event
+
+  // 权限验证：仅管理员可操作
+  const denied = await requireAdmin(operatorId)
+  if (denied) return denied
 
   try {
     if (action === 'create') {

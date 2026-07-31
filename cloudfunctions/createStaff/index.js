@@ -7,8 +7,29 @@ cloud.init({
 
 const db = cloud.database()
 
+// 校验调用者是否为管理员（与 adminApi 一致）
+// operatorId = 调用者自己的员工ID
+async function requireAdmin(operatorId) {
+  if (!operatorId) {
+    return { code: 403, message: '无管理员权限' }
+  }
+  try {
+    const res = await db.collection('staff').doc(operatorId).get()
+    if (!res.data || res.data.role !== 'admin') {
+      return { code: 403, message: '无管理员权限' }
+    }
+  } catch (e) {
+    return { code: 403, message: '身份验证失败' }
+  }
+  return null
+}
+
 exports.main = async (event, context) => {
-  const { username, password, realName, phone, role, enabled } = event
+  const { username, password, realName, phone, role, enabled, operatorId } = event
+
+  // 权限验证：仅管理员可创建员工
+  const denied = await requireAdmin(operatorId)
+  if (denied) return denied
 
   try {
     // 检查用户名是否已存在

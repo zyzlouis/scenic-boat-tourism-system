@@ -37,16 +37,17 @@ const MODULE_NAMES = {
 exports.main = async (event, context) => {
   const { action, collection, data, docId, staffId } = event
 
-  // 1. 验证管理员身份
-  if (staffId) {
-    try {
-      const staffRes = await db.collection('staff').doc(staffId).get()
-      if (!staffRes.data || staffRes.data.role !== 'admin') {
-        return { code: 403, message: '无管理员权限' }
-      }
-    } catch (e) {
-      return { code: 403, message: '身份验证失败' }
+  // 1. 验证管理员身份（强制，缺 staffId 或非 admin 一律拒绝）
+  if (!staffId) {
+    return { code: 403, message: '无管理员权限' }
+  }
+  try {
+    const staffRes = await db.collection('staff').doc(staffId).get()
+    if (!staffRes.data || staffRes.data.role !== 'admin') {
+      return { code: 403, message: '无管理员权限' }
     }
+  } catch (e) {
+    return { code: 403, message: '身份验证失败' }
   }
 
   // 2. 允许操作的集合白名单（特殊操作不需要检查）

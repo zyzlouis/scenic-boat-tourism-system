@@ -21,7 +21,31 @@ const db = cloud.database()
  * - logoUrl: Logo地址
  * - autoRefundEnabled: 是否启用自动退款（boolean）
  * - autoRefundDays: 自动退款天数（number）
+ * - promoBannerEnabled / promoBannerUrl / promoBannerLink: 首页推广横幅
+ * - recommendEnabled / recommendTitle: 首页推荐位
+ *
+ * 注意：app_settings 集合内还存有 AppID / AppSecret 等密钥，
+ * 必须按下方白名单挑字段返回，严禁整份文档透传给客户端。
  */
+const PUBLIC_FIELDS = [
+  'rechargeEnabled',
+  'scenicName',
+  'contactPhone',
+  'openTime',
+  'closeTime',
+  'refundRules',
+  'safetyNotice',
+  'aboutUs',
+  'logoUrl',
+  'autoRefundEnabled',
+  'autoRefundDays',
+  'promoBannerEnabled',
+  'promoBannerUrl',
+  'promoBannerLink',
+  'recommendEnabled',
+  'recommendTitle'
+]
+
 exports.main = async (event, context) => {
   const wxContext = cloud.getWXContext()
 
@@ -39,10 +63,16 @@ exports.main = async (event, context) => {
       }
     }
 
+    // 白名单过滤，剔除 AppID / AppSecret 等敏感字段
+    const safeConfig = {}
+    PUBLIC_FIELDS.forEach(key => {
+      if (appConfig[key] !== undefined) safeConfig[key] = appConfig[key]
+    })
+
     return {
       code: 200,
       message: '获取配置成功',
-      data: appConfig
+      data: safeConfig
     }
   } catch (error) {
     console.error('获取配置失败:', error)

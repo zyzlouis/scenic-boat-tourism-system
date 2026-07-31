@@ -47,12 +47,8 @@ Page({
 
       // 获取价格配置
       const pricingRes = await wx.cloud.callFunction({
-        name: 'adminApi',
-        data: {
-          action: 'query',
-          collection: 'pricingConfigs',
-          data: { where: { boatTypeCode: code, enabled: true } }
-        }
+        name: 'getPricingConfigs',
+        data: { boatTypeCode: code }
       })
 
       if (pricingRes.result.code === 200 && pricingRes.result.data.length > 0) {

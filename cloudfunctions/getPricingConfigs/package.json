@@ -1,0 +1,9 @@
+{
+  "name": "getPricingConfigs",
+  "version": "1.0.0",
+  "description": "获取指定船型的价格方案",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}
