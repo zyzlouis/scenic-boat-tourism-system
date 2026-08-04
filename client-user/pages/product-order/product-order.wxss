@@ -9,7 +9,10 @@
 .status-sub { font-size: 26rpx; opacity: 0.85; margin-top: 8rpx; }
 .code-card { background: #fff; margin: 20rpx; border-radius: 16rpx; padding: 40rpx; text-align: center; }
 .code-label { font-size: 28rpx; color: #999; margin-bottom: 16rpx; }
-.code-value { font-size: 72rpx; font-weight: bold; color: #333; letter-spacing: 16rpx; margin-bottom: 16rpx; }
+.qrcode-wrapper { display: flex; justify-content: center; margin-bottom: 24rpx; }
+/* canvas 的 style 尺寸必须和 js 里 QRCODE_SIZE 一致（200px），否则二维码会被拉伸 */
+.qrcode-canvas { width: 200px; height: 200px; }
+.code-value { font-size: 56rpx; font-weight: bold; color: #333; letter-spacing: 12rpx; margin-bottom: 16rpx; }
 .code-tip { font-size: 24rpx; color: #999; }
 .verified-card { background: #fff; margin: 20rpx; border-radius: 16rpx; padding: 32rpx; text-align: center; }
 .verified-title { font-size: 36rpx; font-weight: bold; color: #4caf50; margin-bottom: 16rpx; }

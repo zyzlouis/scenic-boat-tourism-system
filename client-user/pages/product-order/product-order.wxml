@@ -10,8 +10,16 @@
 
     <view wx:if="{{order.status === 'paid' && order.needVerification && order.verificationCode}}" class="code-card">
       <view class="code-label">核销码</view>
+
+      <!-- 二维码本地生成（weapp-qrcode + canvas），不依赖任何外部服务，
+           景区信号差也能正常出示 -->
+      <view class="qrcode-wrapper">
+        <canvas canvas-id="verifyQrcode" class="qrcode-canvas"></canvas>
+      </view>
+
+      <!-- 文字码保留：扫码设备异常时可由工作人员手工输入 -->
       <view class="code-value">{{order.verificationCode}}</view>
-      <view class="code-tip">请出示此核销码给工作人员扫码</view>
+      <view class="code-tip">请出示此二维码给工作人员扫码</view>
     </view>
 
     <view wx:if="{{order.status === 'completed' && order.verifiedAt}}" class="verified-card">
