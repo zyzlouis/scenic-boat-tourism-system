@@ -1,3 +1,4 @@
+<wxs src="../../../utils/filters.wxs" module="filters" />
 <!--pages/search/search.wxml-->
 <view class="container">
   <!-- 搜索栏 -->
@@ -74,11 +75,11 @@
       <view class="timing-info">
         <view class="timing-item">
           <view class="timing-label">开始时间</view>
-          <view class="timing-value">{{formatTime(searchResult.startTime)}}</view>
+          <view class="timing-value">{{filters.formatTime(searchResult.startTime)}}</view>
         </view>
         <view class="timing-item highlight">
           <view class="timing-label">已用时长</view>
-          <view class="timing-value">{{formatDuration(searchResult.usedMinutes)}}</view>
+          <view class="timing-value">{{filters.formatDuration(searchResult.usedMinutes)}}</view>
         </view>
       </view>
     </view>

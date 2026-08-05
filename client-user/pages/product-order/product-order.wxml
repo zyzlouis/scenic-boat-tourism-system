@@ -36,7 +36,7 @@
 
     <view wx:if="{{order.status === 'completed' && order.verifiedAt}}" class="verified-card">
       <view class="verified-title">已核销</view>
-      <view class="verified-info">核销时间：{{filters.formatTime(order.verifiedAt)}}</view>
+      <view class="verified-info">核销时间：{{order.verifiedAtText}}</view>
       <view wx:if="{{order.verifiedStaffName}}" class="verified-info">核销员工：{{order.verifiedStaffName}}</view>
     </view>
 
@@ -52,8 +52,8 @@
       <view class="info-row"><text class="label">数量</text><text class="value">{{order.quantity}}</text></view>
       <view class="info-row"><text class="label">单价</text><text class="value">¥{{filters.formatMoney(order.productPrice)}}</text></view>
       <view class="info-row"><text class="label">订单金额</text><text class="value price">¥{{filters.formatMoney(order.totalAmount)}}</text></view>
-      <view class="info-row"><text class="label">下单时间</text><text class="value">{{filters.formatTime(order.createdAt)}}</text></view>
-      <view wx:if="{{order.verificationDeadline && order.needVerification}}" class="info-row"><text class="label">核销截止</text><text class="value">{{filters.formatTime(order.verificationDeadline)}}</text></view>
+      <view class="info-row"><text class="label">下单时间</text><text class="value">{{order.createdAtText}}</text></view>
+      <view wx:if="{{order.verificationDeadline && order.needVerification}}" class="info-row"><text class="label">核销截止</text><text class="value">{{order.verificationDeadlineText}}</text></view>
     </view>
 
     <view wx:if="{{order.status === 'paid'}}" class="action-area">

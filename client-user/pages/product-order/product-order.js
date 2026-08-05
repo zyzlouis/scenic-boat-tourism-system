@@ -1,5 +1,6 @@
 const drawQrcode = require('weapp-qrcode');
 const phoneUtil = require('../../utils/phone');
+const util = require('../../utils/util');
 
 // 二维码边长（px）。canvas 的 style 尺寸必须与此一致，否则会被拉伸变形
 const QRCODE_SIZE = 200;
@@ -28,7 +29,20 @@ Page({
 
   async loadOrder(orderId) {
     try {
-      const { data: order } = await wx.cloud.database().collection('orders').doc(orderId).get();
+      const { data: raw } = await wx.cloud.database().collection('orders').doc(orderId).get();
+
+      // 时间必须在 js 层格式化后再传给 WXML。
+      // 本页是客户端直读数据库，Date 字段回来是 JS Date 对象，
+      // 而 WXS 的 getDate() 解析不了对象，会得到 Invalid Date，
+      // 页面上就显示成 NaN-aN-aN aN:aN:aN。
+      // （走云函数的页面没这个问题，因为 Date 被序列化成了 ISO 字符串。）
+      const order = {
+        ...raw,
+        createdAtText: util.formatTime(raw.createdAt),
+        verificationDeadlineText: raw.verificationDeadline ? util.formatTime(raw.verificationDeadline) : '',
+        verifiedAtText: raw.verifiedAt ? util.formatTime(raw.verifiedAt) : ''
+      };
+
       let remainDays = 0;
       if (order.verificationDeadline && order.status === 'paid') {
         const deadline = new Date(order.verificationDeadline);

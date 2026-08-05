@@ -1,5 +1,6 @@
 <!--pages/recharge-logs/recharge-logs.wxml-->
 <wxs src="../../utils/format.wxs" module="format" />
+<wxs src="../../utils/filters.wxs" module="filters" />
 
 <view class="logs-container">
   <!-- 加载中 -->
@@ -25,7 +26,7 @@
         </view>
       </view>
       <view class="log-footer">
-        <text class="log-time">{{item.createdAt}}</text>
+        <text class="log-time">{{filters.formatTime(item.createdAt)}}</text>
         <text class="log-balance">余额：¥{{format.formatMoney(item.afterBalance)}}</text>
       </view>
     </view>
