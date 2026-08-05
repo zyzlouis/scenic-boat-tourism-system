@@ -47,6 +47,18 @@
       </view>
     </view>
 
+
+    <!-- 手机号绑定引导：支付完成后才出现，不打断任何流程，可以不绑 -->
+    <view wx:if="{{needBindPhone}}" class="bind-phone-card card">
+      <view class="bind-phone-title">绑定手机号</view>
+      <view class="bind-phone-desc">退款或订单异常时，我们能第一时间联系到您</view>
+      <button
+        class="bind-phone-btn"
+        open-type="getPhoneNumber"
+        bindgetphonenumber="onGetPhoneNumber"
+      >授权绑定</button>
+    </view>
+
     <!-- 计时看板（计时中才显示） -->
     <view wx:if="{{order.status === 'timing'}}" class="timing-board card">
       <view class="timing-title">🕐 计时看板</view>

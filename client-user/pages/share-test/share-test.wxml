@@ -1,0 +1,26 @@
+<!--pages/share-test/share-test.wxml-->
+<view class="container">
+  <view class="title">分享码生成测试</view>
+
+  <view class="input-section">
+    <input
+      class="input"
+      placeholder="输入船型code"
+      value="{{boatCode}}"
+      bindinput="onInput"
+    />
+  </view>
+
+  <van-button type="primary" bindtap="testGenerateCode">测试生成分享码</van-button>
+
+  <view wx:if="{{result}}" class="result-section">
+    <view class="result-title">返回结果：</view>
+    <text class="result-text">{{result}}</text>
+  </view>
+
+  <view wx:if="{{qrCodeImage}}" class="qrcode-section">
+    <view class="result-title">二维码：</view>
+    <image src="{{qrCodeImage}}" mode="aspectFit" class="qrcode-image" />
+    <van-button size="small" bindtap="previewQrCode">预览大图</van-button>
+  </view>
+</view>

@@ -1,4 +1,5 @@
 const drawQrcode = require('weapp-qrcode');
+const phoneUtil = require('../../utils/phone');
 
 // 二维码边长（px）。canvas 的 style 尺寸必须与此一致，否则会被拉伸变形
 const QRCODE_SIZE = 200;
@@ -7,7 +8,9 @@ Page({
   data: {
     order: null,
     loading: true,
-    remainDays: 0
+    remainDays: 0,
+    // 是否显示手机号绑定引导（已绑定或订单未支付时不显示）
+    needBindPhone: false
   },
 
   onLoad(options) {
@@ -36,9 +39,56 @@ Page({
       this.setData({ order, loading: false, remainDays }, () => {
         this.drawVerifyQrcode();
       });
+
+      // 订单已付款才引导绑定手机号——支付前不打扰，避免重蹈
+      // 2026-07-28 那次「支付流程中途插入授权」的覆辙
+      this.checkNeedBindPhone(order);
     } catch (error) {
       console.error('加载订单失败:', error);
       this.setData({ loading: false });
+    }
+  },
+
+  // 判断要不要显示手机号绑定引导
+  async checkNeedBindPhone(order) {
+    // 未支付 / 已取消的订单不打扰
+    if (!order || order.status === 'pending' || order.status === 'cancelled') {
+      return;
+    }
+    // 每个页面实例只查一次。order-detail 在计时中会每 5 秒重新加载订单，
+    // 不加这个开关会跟着每 5 秒多调一次云函数。
+    if (this._phoneChecked) return;
+    this._phoneChecked = true;
+
+    const bound = await phoneUtil.hasBoundPhone();
+    this.setData({ needBindPhone: !bound });
+  },
+
+  // 授权绑定手机号
+  async onGetPhoneNumber(e) {
+    if (!e.detail.code) {
+      wx.showToast({ title: '已取消', icon: 'none' });
+      return;
+    }
+    // 绑定期间按钮会转圈，但云函数往返有一两秒，仍加锁防重复触发
+    if (this._binding) return;
+    this._binding = true;
+
+    wx.showLoading({ title: '绑定中...', mask: true });
+    try {
+      const ok = await phoneUtil.bindPhone(e.detail.code);
+      if (ok) {
+        this.setData({ needBindPhone: false });
+        wx.showToast({ title: '绑定成功', icon: 'success' });
+      } else {
+        wx.showToast({ title: '绑定失败，请稍后重试', icon: 'none' });
+      }
+    } catch (error) {
+      console.error('绑定手机号失败:', error);
+      wx.showToast({ title: '绑定失败，请稍后重试', icon: 'none' });
+    } finally {
+      this._binding = false;
+      wx.hideLoading();
     }
   },
 

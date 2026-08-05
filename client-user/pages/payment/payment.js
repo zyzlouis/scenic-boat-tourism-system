@@ -8,11 +8,11 @@ Page({
     paymentMethod: 'wechat', // wechat 或 balance
     loading: false,
     rechargeEnabled: false,  // 储值功能开关
-    showPhoneAuth: false,  // 是否显示手机号授权按钮
     // 支付流程进行中：既是按钮的重入锁，也驱动按钮的 loading 态。
-    // 2026-07-28 掉单事故的根因之一就是缺少这把锁——
-    // 手机号授权后的自动重入与用户手动点击并发，各自申请了一个商户单号，
-    // 后者覆盖前者，导致支付回调按单号查不到订单。
+    // 2026-07-28 掉单事故里，两次支付请求各申请了一个商户单号、
+    // 后者覆盖前者，导致回调按单号查不到订单。
+    // 事故的触发路径（手机号授权后自动重入）已在 2026-08-05 移除，
+    // 这把锁保留，用于挡住其余任何重复触发。
     paying: false
   },
 
@@ -80,10 +80,9 @@ Page({
     this.setData({ paymentMethod: method })
   },
 
-  // 立即支付
-  // 支付入口（按钮点击）
+  // 立即支付（按钮点击）
   //
-  // 只是转发到统一入口，所有触发路径（按钮、授权后自动重入）都走 _enterPayFlow。
+  // 只是转发到统一入口，任何触发路径都必须走 _enterPayFlow。
   async doPay() {
     await this._enterPayFlow()
   },
@@ -111,6 +110,11 @@ Page({
   },
 
   // 支付主流程（不要直接调用，一律经 _enterPayFlow 进入以确保持锁）
+  //
+  // 2026-08-05 起这里不再检查手机号。
+  // 原实现会在此处中断支付、弹窗要授权、授权完再用 setTimeout(1500)
+  // 自动续上——那 1.5 秒的无反馈窗口正是 2026-07-28 掉单事故的根因。
+  // 现在支付一条直路走完，手机号改到订单详情页引导绑定。
   async _runPayFlow() {
     if (!this.data.order) {
       wx.showToast({
@@ -120,152 +124,11 @@ Page({
       return
     }
 
-    // 检查用户是否有手机号
-    //
-    // checkUserPhone 是一次云函数往返，原实现全程无任何提示，
-    // 用户以为点击没反应会再点一次——这是事故的直接诱因，必须给反馈。
-    wx.showLoading({ title: '请稍候...', mask: true })
-    let hasPhone
-    try {
-      hasPhone = await this.checkUserPhone()
-    } finally {
-      wx.hideLoading()
-    }
-
-    if (!hasPhone) {
-      // 没有手机号，提示用户授权
-      wx.showModal({
-        title: '需要绑定手机号',
-        content: '为了更好地为您服务，请先绑定手机号',
-        confirmText: '去绑定',
-        success: (res) => {
-          if (res.confirm) {
-            // 用户点击确定，显示授权按钮
-            this.setData({ showPhoneAuth: true })
-          }
-        }
-      })
-      return
-    }
-
-    // 有手机号，继续支付流程
     if (this.data.paymentMethod === 'balance') {
       await this.payWithBalance()
     } else {
       await this.payWithWechat()
     }
-  },
-
-  // 检查用户是否有手机号
-  async checkUserPhone() {
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'getUserInfo'
-      })
-      if (res.result.success && res.result.data && res.result.data.phone) {
-        return true
-      }
-      return false
-    } catch (error) {
-      console.error('检查手机号失败:', error)
-      return false
-    }
-  },
-
-  // 获取手机号授权
-  async onGetPhoneNumber(e) {
-    console.log('📱 获取手机号:', e.detail)
-
-    if (e.detail.code) {
-      try {
-        wx.showLoading({ title: '授权中...', mask: true })
-
-        const res = await wx.cloud.callFunction({
-          name: 'getPhoneNumber',
-          data: { code: e.detail.code }
-        })
-
-        wx.hideLoading()
-
-        if (res.result.success) {
-          wx.showToast({
-            title: '绑定成功',
-            icon: 'success'
-          })
-
-          // 隐藏授权按钮，并立刻上锁：
-          // 等待期间支付按钮转圈且不可点，用户不会以为"没反应"而重复点击。
-          this.setData({ showPhoneAuth: false, paying: true })
-
-          // 继续支付流程，走统一入口。
-          //
-          // ⚠️ 这里必须走 _enterPayFlow 而不是直接调 _runPayFlow：
-          // 若本函数被触发两次且都成功（用户连点授权按钮，两个 code 都有效），
-          // 就会排出两个 setTimeout。直接调 _runPayFlow 会绕过锁，
-          // 导致两次支付流程并发、各自向微信申请一个商户单号——
-          // 这正是 2026-07-28 事故的形态。
-          setTimeout(() => {
-            this._enterPayFlow()
-          }, 1500)
-        } else {
-          wx.showToast({
-            title: res.result.message || '授权失败',
-            icon: 'none'
-          })
-        }
-      } catch (error) {
-        wx.hideLoading()
-        console.error('获取手机号失败:', error)
-        wx.showToast({
-          title: '授权失败',
-          icon: 'none'
-        })
-      }
-    } else {
-      wx.showToast({
-        title: '取消授权',
-        icon: 'none'
-      })
-    }
-  },
-
-  // 取消手机号授权
-  onCancelPhoneAuth() {
-    this.setData({ showPhoneAuth: false })
-  },
-
-  // 支付成功后：主动确认一次，再跳转
-  //
-  // 原实现是盲等 1500 毫秒就跳转，赌支付回调已经处理完。
-  // 但回调可能延迟、甚至失败——2026-07-28 事故里回调就因单号对不上永久没落地，
-  // 用户跳过去看到的是"待支付"，然后就去投诉了。
-  //
-  // 改为主动调对账：此刻用户还在页面上，小程序端调用天然带云调用令牌，
-  // 直接向微信核实真实支付状态并补单，秒级完成。
-  // 失败也不要紧，定时对账仍会在 13 分钟内兜住。
-  async _afterPaySuccess() {
-    const orderId = this.data.order._id
-    const detailPage = this.data.order.orderType === 'product'
-      ? '/pages/product-order/product-order'
-      : '/pages/order-detail/order-detail'
-
-    wx.showLoading({ title: '正在生成核销码...', mask: true })
-    try {
-      const res = await wx.cloud.callFunction({
-        name: 'reconcilePayment',
-        data: { orderId }
-      })
-      console.log('🔄 支付后主动对账结果:', res.result)
-    } catch (error) {
-      // 静默降级：定时对账会兜底，不打扰用户
-      console.error('支付后主动对账失败，将由定时任务处理:', error)
-    } finally {
-      wx.hideLoading()
-    }
-
-    wx.redirectTo({
-      url: `${detailPage}?orderId=${orderId}`
-    })
   },
 
   // 余额支付
